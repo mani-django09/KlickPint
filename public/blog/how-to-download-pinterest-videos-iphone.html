@@ -98,9 +98,21 @@ tbody tr:hover td{background:var(--light)}
 .related-card:hover{border-color:var(--red);transform:translateY(-2px)}
 .related-card-title{font-weight:700;font-size:14px;margin-bottom:4px}
 .related-card-desc{font-size:12px;color:var(--gray)}
-footer{background:var(--dark);color:rgba(255,255,255,.4);text-align:center;padding:28px;font-size:13px;margin-top:40px}
-footer a{color:rgba(255,255,255,.6);text-decoration:none;margin:0 10px}
-footer a:hover{color:#fff}
+footer{background:#0D0D0D;padding:48px 24px 28px;margin-top:40px}
+.footer-inner{max-width:1140px;margin:0 auto}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.footer-logo-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.footer-logo{width:34px;height:34px;border-radius:9px;background:#E60023;display:flex;align-items:center;justify-content:center}
+.footer-logo svg{width:18px;height:18px;fill:#fff}
+.footer-brand{font-weight:800;font-size:20px;color:#fff}
+.footer-brand span{color:#E60023}
+.footer-desc{font-size:13px;color:rgba(255,255,255,.5);line-height:1.7;max-width:260px}
+.footer-col h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#fff;margin-bottom:14px}
+.footer-col a{display:block;font-size:13px;color:rgba(255,255,255,.45);text-decoration:none;margin-bottom:9px;transition:.18s}
+.footer-col a:hover{color:#fff}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.08);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:rgba(255,255,255,.35)}
+.footer-note{font-size:11px;color:rgba(255,255,255,.2)}
+@media(max-width:768px){.footer-top{grid-template-columns:1fr}}
 @media(max-width:600px){.blog-wrap{padding:32px 16px 60px}.article-title{letter-spacing:-.8px}}
 </style>
 </head>
@@ -234,8 +246,35 @@ footer a:hover{color:#fff}
 </div>
 
 <footer>
-  <p><a href="/">KlickPint</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Use</a><a href="/dmca">DMCA</a></p>
-  <p style="margin-top:12px">© 2025 KlickPint · klickpint.online · All rights reserved.</p>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-logo-row">
+          <div class="footer-logo"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 2.61 1.42 4.88 3.53 6.12-.08.33-.25 1.06-.28 1.22-.04.19.07.38.25.46.17.07.37.02.49-.13l1.47-2.01c.5.09 1.02.14 1.54.14 3.87 0 7-3.13 7-7S15.87 2 12 2z"/></svg></div>
+          <span class="footer-brand">Klick<span>Pint</span></span>
+        </div>
+        <p class="footer-desc">The free Pinterest video downloader. HD 1080p, no login, no watermark, no limits. Used by millions worldwide.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <a href="/">Home</a>
+        <a href="/#how-to">How to Use</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/#formats">Formats</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Use</a>
+        <a href="/dmca">DMCA</a>
+        <a href="mailto:support@klickpint.online">Contact</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 KlickPint · klickpint.online · All rights reserved.</span>
+      <span class="footer-note">Personal use only. Respect copyright laws and Pinterest's Terms of Service.</span>
+    </div>
+  </div>
 </footer>
 </body>
 </html>
