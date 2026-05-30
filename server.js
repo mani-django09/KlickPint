@@ -175,8 +175,9 @@ app.use(morgan('combined'));
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));  // prevent large body attacks
 app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge : '1d',
-  etag   : true,
+  maxAge     : '1d',
+  etag       : true,
+  extensions : ['html'],   // /privacy → privacy.html, /terms → terms.html etc.
   setHeaders(res, filePath) {
     if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
   }
