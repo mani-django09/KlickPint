@@ -4,3 +4,6 @@ node_modules/
 .DS_Store
 {public
 npm-debug.log*
+
+# Admin activity log — real user IPs/pin activity, never belongs in git
+data/

@@ -268,7 +268,9 @@ async function download(q, d) {
 
   busy = true;
   const filename = buildFilename(d.title, q.label);
-  const base    = `/api/download?url=${encodeURIComponent(q.url)}&filename=${encodeURIComponent(filename)}`;
+  const base    = `/api/download?url=${encodeURIComponent(q.url)}&filename=${encodeURIComponent(filename)}`
+    + (d.pinId ? `&pinId=${encodeURIComponent(d.pinId)}` : '')
+    + `&label=${encodeURIComponent(q.label)}`;
   // Default: a 302 straight to Pinterest's CDN — zero bytes through our
   // server. fetch() can only read progress from it if the CDN allows a
   // cross-origin body read; if that's blocked, ?proxy=1 streams the same

@@ -1,8 +1,17 @@
 'use strict';
 
+// Load .env before anything else reads process.env. deploy.sh creates a
+// .env file from .env.example, but nothing was ever actually loading it —
+// PORT/NODE_ENV only ever worked because ecosystem.config.js sets them
+// directly as PM2 env vars. ADMIN_PASSWORD has no such fallback, so it
+// needs .env to actually be read.
+require('dotenv').config();
+
 const express     = require('express');
 const cors        = require('cors');
 const path        = require('path');
+const fs          = require('fs');
+const crypto      = require('crypto');
 const axios       = require('axios');
 const cheerio     = require('cheerio');
 const rateLimit   = require('express-rate-limit');
@@ -211,8 +220,10 @@ app.set('trust proxy', 1);
 
 // ── In-memory analytics ────────────────────────────────────────────────────
 const stats = {
-  totalDownloads : 0,
+  totalDownloads : 0,   // /api/fetch requests (lookups), not actual file downloads
   todayDownloads : 0,
+  totalFiles     : 0,   // real /api/download hits — an actual file handed to a user
+  todayFiles     : 0,
   lastReset      : new Date().toDateString(),
   ipDownloads    : new Map(),
 };
@@ -221,6 +232,7 @@ setInterval(() => {
   const today = new Date().toDateString();
   if (stats.lastReset !== today) {
     stats.todayDownloads = 0;
+    stats.todayFiles = 0;
     stats.lastReset = today;
     stats.ipDownloads.clear();
     console.log('[Stats] Daily reset done');
@@ -299,6 +311,144 @@ setInterval(() => {
   for (const [id, entry] of videoCache)
     if (now > entry.expiresAt) videoCache.delete(id);
 }, 10 * 60 * 1000);
+
+// ══════════════════════════════════════════════════════════════════
+//  ACTIVITY LOG — powers the admin panel. Records every fetch/download
+//  request: timestamp, IP, pin, quality, outcome. Kept for ADMIN_RETENTION_
+//  DAYS then purged automatically. This is a deliberate, documented change
+//  from the site's earlier "we don't log URLs, IP logs purged in 24h"
+//  privacy claim — privacy.html has been updated to match.
+// ══════════════════════════════════════════════════════════════════
+const DATA_DIR            = path.join(__dirname, 'data');
+const ACTIVITY_LOG_PATH   = path.join(DATA_DIR, 'activity.jsonl');
+const ACTIVITY_MEM_MAX    = 500;                 // fast in-memory window for the admin UI
+const ACTIVITY_DISK_MAX   = 20000;                // hard cap on stored entries
+const ACTIVITY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) { console.error('[Activity] mkdir failed', e.message); }
+
+const recentActivity = []; // newest last; capped ring buffer mirrored to disk
+let activitySeq = 0;
+
+// Only one cluster worker runs the periodic disk trim, otherwise every
+// worker rewrites the same file on its own timer and they'd stomp on each
+// other's writes. PM2 sets NODE_APP_INSTANCE per worker in cluster mode;
+// instance "0" (or a non-cluster run, where the var is unset) owns it.
+const IS_TRIM_OWNER = !process.env.NODE_APP_INSTANCE || process.env.NODE_APP_INSTANCE === '0';
+
+function loadRecentActivityFromDisk() {
+  try {
+    const raw = fs.readFileSync(ACTIVITY_LOG_PATH, 'utf8');
+    const lines = raw.split('\n').filter(Boolean).slice(-ACTIVITY_MEM_MAX);
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        recentActivity.push(entry);
+        if (entry.seq >= activitySeq) activitySeq = entry.seq + 1;
+      } catch (_) {}
+    }
+  } catch (_) { /* file doesn't exist yet on first run */ }
+}
+loadRecentActivityFromDisk();
+
+function logActivity(entry) {
+  const record = {
+    seq  : activitySeq++,
+    ts   : new Date().toISOString(),
+    ...entry,
+  };
+  recentActivity.push(record);
+  if (recentActivity.length > ACTIVITY_MEM_MAX) recentActivity.shift();
+
+  // Fire-and-forget append. A single JSON line under ~4KB appends atomically
+  // on POSIX even with multiple cluster workers writing concurrently — no
+  // interleaved/corrupted lines, unlike a naive read-modify-write.
+  fs.appendFile(ACTIVITY_LOG_PATH, JSON.stringify(record) + '\n', (err) => {
+    if (err) console.error('[Activity] write failed', err.message);
+  });
+}
+
+// Purge entries past the retention window and cap file size. Rewrites the
+// whole file, so only the elected trim-owner worker ever does this.
+function trimActivityLog() {
+  if (!IS_TRIM_OWNER) return;
+  fs.readFile(ACTIVITY_LOG_PATH, 'utf8', (err, raw) => {
+    if (err) return; // nothing to trim yet
+    const cutoff = Date.now() - ACTIVITY_RETENTION_MS;
+    const kept = raw.split('\n').filter(Boolean)
+      .map(line => { try { return JSON.parse(line); } catch (_) { return null; } })
+      .filter(e => e && new Date(e.ts).getTime() >= cutoff)
+      .slice(-ACTIVITY_DISK_MAX);
+    const tmpPath = ACTIVITY_LOG_PATH + '.tmp';
+    fs.writeFile(tmpPath, kept.map(e => JSON.stringify(e)).join('\n') + (kept.length ? '\n' : ''), (werr) => {
+      if (werr) return console.error('[Activity] trim write failed', werr.message);
+      fs.rename(tmpPath, ACTIVITY_LOG_PATH, (rerr) => {
+        if (rerr) console.error('[Activity] trim rename failed', rerr.message);
+        else console.log(`[Activity] trimmed to ${kept.length} entries`);
+      });
+    });
+  });
+}
+setInterval(trimActivityLog, 60 * 60 * 1000); // hourly
+
+// ══════════════════════════════════════════════════════════════════
+//  ADMIN AUTH — stateless signed session cookie, not an in-memory
+//  session Map. Cluster mode runs 2 worker processes with no shared
+//  memory; a Map-based session store would randomly log the admin out
+//  whenever the load balancer routed them to the other worker. A token
+//  signed with an HMAC derived from ADMIN_PASSWORD verifies the same way
+//  on every worker without needing shared state.
+// ══════════════════════════════════════════════════════════════════
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ADMIN_SESSION_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+if (!ADMIN_PASSWORD) {
+  console.warn('[ADMIN] ADMIN_PASSWORD is not set — the admin panel is disabled until it is.');
+}
+
+const ADMIN_KEY = ADMIN_PASSWORD
+  ? crypto.createHash('sha256').update('klickpint-admin:' + ADMIN_PASSWORD).digest()
+  : null;
+
+function signAdminToken() {
+  const payload = Buffer.from(JSON.stringify({ exp: Date.now() + ADMIN_SESSION_MS })).toString('base64url');
+  const sig = crypto.createHmac('sha256', ADMIN_KEY).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
+
+function verifyAdminToken(token) {
+  if (!ADMIN_KEY || !token || typeof token !== 'string') return false;
+  const [payload, sig] = token.split('.');
+  if (!payload || !sig) return false;
+  const expected = crypto.createHmac('sha256', ADMIN_KEY).update(payload).digest('base64url');
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+  try {
+    const { exp } = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    return typeof exp === 'number' && exp > Date.now();
+  } catch (_) {
+    return false;
+  }
+}
+
+// No cookie-parser dependency — we only ever need to read one cookie.
+function readCookie(req, name) {
+  const header = req.headers.cookie;
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    if (part.slice(0, idx).trim() === name) return decodeURIComponent(part.slice(idx + 1).trim());
+  }
+  return null;
+}
+
+function requireAdmin(req, res, next) {
+  if (!ADMIN_KEY) return res.status(503).json({ error: 'Admin panel is not configured.' });
+  if (!verifyAdminToken(readCookie(req, 'kp_admin'))) return res.status(401).json({ error: 'Not authenticated.' });
+  next();
+}
 
 // ══════════════════════════════════════════════════════════════════
 //  QUALITY MAP & HELPERS
@@ -602,11 +752,15 @@ app.post('/api/fetch', fetchLimiter, async (req, res) => {
 
   try {
     const data = await getPinInfo(url);
-    if (!data.qualities.length)
+    if (!data.qualities.length) {
+      logActivity({ event: 'fetch', ip, pinId: data.pinId || null, success: false, error: 'no video found', qualities: 0 });
       return res.status(404).json({ error: 'No video found in this pin. It may be an image pin or a private pin.' });
+    }
+    logActivity({ event: 'fetch', ip, pinId: data.pinId, title: data.title, success: true, qualities: data.qualities.length });
     res.json({ success: true, data });
   } catch (err) {
     console.error('[Fetch error]', err.message);
+    logActivity({ event: 'fetch', ip, pinId: null, success: false, error: err.message });
     const isCooldown = err.message.includes('temporarily unavailable');
     res.status(isCooldown ? 503 : 500).json({ error: err.message || 'Could not fetch video. Please try again.' });
   }
@@ -649,7 +803,7 @@ function safeFilename(filename) {
 }
 
 app.get('/api/download', async (req, res) => {
-  const { url, filename, proxy } = req.query;
+  const { url, filename, proxy, pinId, label } = req.query;
   if (!url || typeof url !== 'string')
     return res.status(400).json({ error: 'URL required' });
 
@@ -658,6 +812,17 @@ app.get('/api/download', async (req, res) => {
 
   const fn = safeFilename(filename);
   res.setHeader('Content-Disposition', `attachment; filename="${fn}"`);
+
+  stats.totalFiles++;
+  stats.todayFiles++;
+  logActivity({
+    event : 'download',
+    ip    : req.ip,
+    pinId : typeof pinId === 'string' ? pinId.slice(0, 40) : null,
+    label : typeof label === 'string' ? label.slice(0, 20) : null,
+    proxy : proxy === '1',
+    success: true,
+  });
 
   if (proxy !== '1') {
     return res.redirect(302, target.href);  // zero VPS bandwidth
@@ -712,6 +877,93 @@ app.get('/api/stats', (req, res) => {
       cooldownLeft: Math.max(0, Math.round((pinterestHealth.cooldownUntil - Date.now()) / 1000)),
     },
   });
+});
+
+// ── Admin ─────────────────────────────────────────────────────────────────
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max     : 10,                 // 10 attempts / 15 min / IP — brute-force guard
+  standardHeaders: true,
+  legacyHeaders  : false,
+  message : { error: 'Too many login attempts. Try again later.' },
+});
+
+app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
+  if (!ADMIN_KEY) return res.status(503).json({ error: 'Admin panel is not configured.' });
+  const { password } = req.body || {};
+  const supplied = Buffer.from(String(password || ''));
+  const expected = Buffer.from(ADMIN_PASSWORD);
+  // Pad to equal length before comparing so timingSafeEqual never throws on
+  // a length mismatch — and so the comparison time doesn't leak the real
+  // password's length to an attacker via response timing.
+  const len = Math.max(supplied.length, expected.length, 1);
+  const a = Buffer.alloc(len); supplied.copy(a);
+  const b = Buffer.alloc(len); expected.copy(b);
+  const ok = crypto.timingSafeEqual(a, b) && supplied.length === expected.length;
+
+  if (!ok) {
+    console.warn(`[ADMIN] failed login from ${req.ip}`);
+    return res.status(401).json({ error: 'Wrong password.' });
+  }
+
+  res.cookie('kp_admin', signAdminToken(), {
+    httpOnly: true,
+    secure  : req.secure || req.headers['x-forwarded-proto'] === 'https',
+    sameSite: 'strict',
+    maxAge  : ADMIN_SESSION_MS,
+    path    : '/api/admin',
+  });
+  res.json({ success: true });
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  res.clearCookie('kp_admin', { path: '/api/admin' });
+  res.json({ success: true });
+});
+
+app.get('/api/admin/session', (req, res) => {
+  res.json({ authenticated: !!ADMIN_KEY && verifyAdminToken(readCookie(req, 'kp_admin')) });
+});
+
+app.get('/api/admin/summary', requireAdmin, (req, res) => {
+  res.json({
+    totalDownloads : stats.totalFiles,      // real files served, not lookups
+    todayDownloads : stats.todayFiles,
+    totalFetches   : stats.totalDownloads,  // /api/fetch lookups (a user may fetch and never pick a quality)
+    todayFetches   : stats.todayDownloads,
+    activeIPs      : stats.ipDownloads.size,
+    bannedIPs      : [...abuseTracker.values()].filter(d => d.bannedUntil > Date.now()).length,
+    cache          : { size: videoCache.size, maxSize: CACHE_MAX },
+    memory         : `${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`,
+    uptime         : Math.round(process.uptime()),
+    pinterestHealth: {
+      ok          : pinterestOk(),
+      failures    : pinterestHealth.failures,
+      cooldownLeft: Math.max(0, Math.round((pinterestHealth.cooldownUntil - Date.now()) / 1000)),
+    },
+  });
+});
+
+app.get('/api/admin/activity', requireAdmin, (req, res) => {
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
+  const { ip, event, success, q } = req.query;
+
+  let rows = recentActivity;
+  if (ip)      rows = rows.filter(r => r.ip === ip);
+  if (event)   rows = rows.filter(r => r.event === event);
+  if (success === 'true')  rows = rows.filter(r => r.success === true);
+  if (success === 'false') rows = rows.filter(r => r.success === false);
+  if (q) {
+    const needle = String(q).toLowerCase();
+    rows = rows.filter(r =>
+      (r.pinId && r.pinId.toLowerCase().includes(needle)) ||
+      (r.title && r.title.toLowerCase().includes(needle)) ||
+      (r.ip && r.ip.includes(needle))
+    );
+  }
+
+  const slice = rows.slice(-limit).reverse(); // newest first
+  res.json({ total: rows.length, entries: slice });
 });
 
 // Browsers ask for /favicon.ico unprompted; point them at the SVG instead of
