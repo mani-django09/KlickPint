@@ -6,6 +6,14 @@ module.exports = {
 
       // ── Cluster mode: use ALL CPU cores ───────────────────────────────
       // VPS ke saare cores use honge — 4 cores = 4x capacity
+      //
+      // CAVEAT: server.js keeps the rate limiter, the abuse tracker and the
+      // pin cache in process memory, and cluster workers do NOT share memory.
+      // With N workers the effective per-IP limits become N× looser (25/hour
+      // becomes 25×N) and the cache hit rate drops, because a given IP is
+      // load-balanced across workers. Set `instances: 1` if strict limits
+      // matter more than throughput, or move that state into Redis
+      // (rate-limit-redis) before scaling out.
       instances : 'max',       // auto-detect CPU count
       exec_mode : 'cluster',   // load balance across all cores
 

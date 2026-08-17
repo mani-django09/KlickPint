@@ -113,8 +113,17 @@ async function withRetry(fn, maxAttempts = 3, baseDelay = 1000) {
       const is429  = err.response?.status === 429;
       const is403  = err.response?.status === 403;
 
-      if (isLast) throw err;
-      if (is429 || is403) recordPinterestFailure();
+      if (isLast) {
+        // Record exactly once per failed operation, right before giving up
+        // — not on every intermediate attempt. This used to fire on every
+        // non-final retry AND again in getPinInfo's outer catch, so a single
+        // pin that got 429'd for all 3 attempts counted as 2-3 failures
+        // toward pinterestHealth.FAIL_THRESHOLD (8). In practice that meant
+        // 2-3 unlucky requests — not 8 — could trip the site-wide 5-minute
+        // "Pinterest rate-limited us" cooldown for every visitor.
+        if (is429 || is403) recordPinterestFailure();
+        throw err;
+      }
 
       const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 500;
       console.warn(`[Retry ${attempt}/${maxAttempts}] ${err.message} — waiting ${Math.round(delay)}ms`);
@@ -171,7 +180,12 @@ setInterval(() => {
 // ── Security & Performance ─────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
-app.use(morgan('combined'));
+
+// Log the path only — never the query string. /api/download carries the
+// Pinterest CDN URL as a query param and the privacy policy promises we do
+// not retain submitted URLs, so it must not land in the access log.
+morgan.token('pathonly', req => req.originalUrl.split('?')[0]);
+app.use(morgan(':remote-addr :method :pathonly :status :res[content-length] - :response-time ms'));
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));  // prevent large body attacks
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -179,7 +193,16 @@ app.use(express.static(path.join(__dirname, 'public'), {
   etag       : true,
   extensions : ['html'],   // /privacy → privacy.html, /terms → terms.html etc.
   setHeaders(res, filePath) {
-    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      // Short cache + ETag revalidation, NOT the 1-day default below.
+      // JS/CSS carry bug fixes — a 24h max-age means a returning visitor's
+      // browser would keep running an already-fixed bug for up to a day
+      // with no way to notice, since a hard max-age skips the revalidation
+      // request entirely (unlike ETag-based 304s, which are near-free).
+      res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+    }
   }
 }));
 
@@ -209,7 +232,9 @@ setInterval(() => {
 const fetchLimiter = rateLimit({
   windowMs : 60 * 60 * 1000,
   max      : 25,
-  keyGenerator: req => req.ip,
+  // No custom keyGenerator: express-rate-limit's default already keys on the
+  // (proxy-aware) IP and normalises IPv6 into /56 subnets. A hand-rolled
+  // `req.ip` key lets a single IPv6 client rotate addresses past the limit.
   standardHeaders: true,
   legacyHeaders  : false,
   handler: (req, res) => {
@@ -293,32 +318,101 @@ function detectQualityFromUrl(url) {
   return 'Video';
 }
 
+// Pinterest reports video_list durations in MILLISECONDS. Older pins
+// occasionally carry seconds instead, so normalise both into seconds —
+// without this a 30 s clip renders as "500:00".
+function normalizeDuration(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return n > 1000 ? Math.round(n / 1000) : Math.round(n);
+}
+
+function formatDuration(seconds) {
+  if (!seconds) return '';
+  const m = Math.floor(seconds / 60);
+  const s = String(seconds % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+// Dedup by LABEL, not URL. The HTML fallback below walks the *entire* page
+// JSON recursively, which includes related-pins / "more like this" carousel
+// data — each of those pins has its own video_list with a different CDN URL
+// at the same resolution. URL-based dedup let five different "720p" videos
+// (from five different pins) through as if they were five real options for
+// the one video the user asked for.
 function deduplicateAndSort(videos) {
-  const seen  = new Set();
+  const seen = new Set();
   const ORDER = { '1080p':1,'720p':2,'480p':3,'360p':4,'HD':5,'Video':6 };
   return videos
-    .filter(v => { if (!v.url || seen.has(v.url)) return false; seen.add(v.url); return true; })
+    .filter(v => { if (!v.url || !v.label || seen.has(v.label)) return false; seen.add(v.label); return true; })
     .sort((a, b) => (ORDER[a.label] || 99) - (ORDER[b.label] || 99));
 }
 
-function extractVideosFromObj(obj, out) {
-  if (!obj || typeof obj !== 'object') return;
-  if (Array.isArray(obj)) { obj.forEach(i => extractVideosFromObj(i, out)); return; }
+// Only the FIRST video_list found in the page JSON belongs to the pin the
+// user asked for — it appears earliest in Pinterest's initial-state blob,
+// ahead of any related-pins data. Stop recursing the moment one is consumed
+// so we never mix in another pin's qualities.
+function extractVideosFromObj(obj, out, state = { done: false }) {
+  if (state.done || !obj || typeof obj !== 'object') return;
+  if (Array.isArray(obj)) {
+    for (const item of obj) { extractVideosFromObj(item, out, state); if (state.done) return; }
+    return;
+  }
   if (obj.video_list && typeof obj.video_list === 'object') {
+    let added = false;
     for (const [key, meta] of Object.entries(QUALITY_MAP)) {
       const v = obj.video_list[key];
-      if (v?.url && !out.find(x => x.url === v.url)) {
+      if (v?.url && !out.find(x => x.label === meta.label)) {
         out.push({ label: meta.label, tag: meta.tag, url: v.url, type: 'video', order: meta.order });
+        added = true;
       }
     }
+    if (added) { state.done = true; return; }
   }
-  for (const val of Object.values(obj)) extractVideosFromObj(val, out);
+  for (const val of Object.values(obj)) { extractVideosFromObj(val, out, state); if (state.done) return; }
+}
+
+// Fixed, literal domain list — deliberately NOT a generic "ends with
+// pinterest.<anything>" pattern. A pattern like /pinterest\.[a-z.]+$/ also
+// matches "pinterest.evil.com" (the SLD there is "evil", "pinterest" is just
+// a subdomain label), which would let an attacker point our server at an
+// internal/private address. Each entry below is checked as an exact host or
+// a "ends with '.' + entry" subdomain match, so "pinterest.com" can never
+// match "notpinterest.com" or "pinterest.com.evil.net" either.
+const PINTEREST_DOMAINS = [
+  'pin.it', 'pinterest.com',
+  'pinterest.co.uk', 'pinterest.de', 'pinterest.fr', 'pinterest.it',
+  'pinterest.es', 'pinterest.ca', 'pinterest.com.au', 'pinterest.co.nz',
+  'pinterest.co.kr', 'pinterest.jp', 'pinterest.ru', 'pinterest.se',
+  'pinterest.dk', 'pinterest.at', 'pinterest.ch', 'pinterest.ie',
+  'pinterest.pt', 'pinterest.nl', 'pinterest.com.mx', 'pinterest.ph',
+  'pinterest.co.in', 'pinterest.com.br', 'pinterest.pl',
+];
+
+function isPinterestHost(hostname) {
+  const h = String(hostname || '').toLowerCase();
+  return PINTEREST_DOMAINS.some(d => h === d || h.endsWith('.' + d));
 }
 
 // ── Resolve short/shared URLs ──────────────────────────────────────────────
 async function resolveUrl(rawUrl) {
   const direct = rawUrl.match(/pinterest\.[a-z.]+\/pin\/(\d+)/);
   if (direct) return { pinId: direct[1], cleanUrl: `https://www.pinterest.com/pin/${direct[1]}/` };
+
+  // SSRF guard: without this, ANY string merely containing the substring
+  // "pinterest" or "pin.it" (checked by the route handler) reaches this
+  // point and gets fetched verbatim — e.g. "https://evil.example/?pinterest"
+  // or an internal address disguised the same way. Only actually resolve
+  // URLs whose host is a real Pinterest domain.
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch (_) {
+    throw new Error('Please enter a valid Pinterest URL.');
+  }
+  if (!isPinterestHost(parsed.hostname)) {
+    throw new Error('Please enter a valid Pinterest URL.');
+  }
 
   const resp = await withRetry(() =>
     axios.get(rawUrl, {
@@ -380,14 +474,25 @@ async function fetchViaHTML(cleanUrl) {
   const ogVid = $('meta[property="og:video"]').attr('content') || $('meta[property="og:video:url"]').attr('content');
   if (ogVid) result.videos.push({ label: 'HD', tag: 'High', url: ogVid, type: 'video' });
 
+  // Shared across every <script> tag, not reset per-tag — otherwise the
+  // "only regex-scan if nothing found yet" check below only ever looked at
+  // the current tag's contribution and re-triggered on every later tag too.
+  const state = { done: result.videos.length > 0 };
+
   $('script').each((_, el) => {
+    if (state.done) return;
     const txt = $(el).html() || '';
     if (txt.includes('video_list') || txt.includes('V_720P') || txt.includes('V_1080P')) {
       try {
-        extractVideosFromObj(JSON.parse(txt.replace(/^[^{[]*/, '').replace(/[^}\]]*$/, '')), result.videos);
+        extractVideosFromObj(JSON.parse(txt.replace(/^[^{[]*/, '').replace(/[^}\]]*$/, '')), result.videos, state);
       } catch (_) {}
     }
-    if (result.videos.length === 0) {
+  });
+
+  if (result.videos.length === 0) {
+    $('script').each((_, el) => {
+      if (result.videos.length > 0) return;
+      const txt = $(el).html() || '';
       (txt.match(/https?:\\?\/\\?\/[^"' \\]*?\.mp4[^"' \\]*/g) || []).forEach(raw => {
         const u = raw.replace(/\\u002F/g, '/').replace(/\\\//g, '/');
         if (!u.includes('thumbnail') && !result.videos.find(v => v.url === u)) {
@@ -395,8 +500,8 @@ async function fetchViaHTML(cleanUrl) {
           result.videos.push({ label: lbl, tag: lbl, url: u, type: 'video' });
         }
       });
-    }
-  });
+    });
+  }
 
   result.videos = deduplicateAndSort(result.videos);
   return result;
@@ -430,8 +535,14 @@ async function getPinInfo(rawUrl) {
     const vl  = pinData.videos?.video_list || {};
     duration  = vl.V_720P?.duration || vl.V_480P?.duration || vl.V_1080P?.duration || 0;
   } catch (e) {
+    // NOT recordPinterestFailure() here — withRetry() already records it,
+    // exactly once, but only for real 429/403 responses. This catch also
+    // fires for things that have nothing to do with Pinterest blocking us
+    // (a deleted/private pin, a malformed API response, a timeout on our
+    // side) — those used to count toward the SAME cooldown counter, so a
+    // batch of users pasting normal dead links could falsely trip a
+    // site-wide "Pinterest rate-limited us" error for everyone.
     console.warn('[API fail]', e.message);
-    recordPinterestFailure();
     try {
       const scraped = await fetchViaHTML(cleanUrl);
       qualities = scraped.videos;
@@ -440,20 +551,16 @@ async function getPinInfo(rawUrl) {
       if (scraped.videos.length > 0) recordPinterestSuccess();
     } catch (e2) {
       console.error('[HTML fail]', e2.message);
-      recordPinterestFailure();
     }
   }
 
   qualities = deduplicateAndSort(qualities).map(q => ({ ...q, locked: false }));
 
-  const mins = Math.floor(duration / 60);
-  const secs = String(Math.floor(duration % 60)).padStart(2, '0');
-
   const result = {
     pinId,
     title    : (title || 'Pinterest Video').substring(0, 100),
     thumbnail,
-    duration : duration ? `${mins}:${secs}` : '',
+    duration : formatDuration(normalizeDuration(duration)),
     qualities,
   };
 
@@ -475,7 +582,13 @@ app.post('/api/fetch', fetchLimiter, async (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== 'string' || url.length > 500)
     return res.status(400).json({ error: 'Please enter a valid Pinterest URL' });
-  if (!url.includes('pinterest') && !url.includes('pin.it'))
+  // Case-insensitive substring check — the old version used a plain
+  // case-sensitive .includes(), which rejected otherwise-valid links pasted
+  // or typed in mixed case (e.g. "Pinterest.com/..."), even though the
+  // client-side check (PIN_RE, /i flag) already let them through. This is a
+  // cheap pre-filter only; resolveUrl() does the real host-allowlist check
+  // before any outbound request is made.
+  if (!/pinterest|pin\.it/i.test(url))
     return res.status(400).json({ error: 'Please enter a valid Pinterest URL' });
 
   // Track stats
@@ -499,22 +612,77 @@ app.post('/api/fetch', fetchLimiter, async (req, res) => {
   }
 });
 
-// ── Download — Direct redirect (zero VPS bandwidth) ──────────────────────
-// Video file goes Pinterest CDN → User directly. VPS only sends a 302.
-app.get('/api/download', (req, res) => {
-  const { url, filename } = req.query;
-  if (!url) return res.status(400).json({ error: 'URL required' });
+// ── Download ──────────────────────────────────────────────────────────────
+// Default: 302 straight to the Pinterest CDN, so the video bytes never touch
+// this VPS. The browser follows the redirect (or the front-end reads it with
+// fetch() to draw a real progress bar and name the file itself).
+//
+// ?proxy=1: stream the file through this server instead. Only used as a
+// fallback when the CDN refuses the cross-origin read, because a plain
+// redirect drops Content-Disposition — the header cannot survive a hop to a
+// different origin, so the browser would open the video instead of saving it.
+const ALLOWED_DOWNLOAD_HOSTS = /(^|\.)(pinimg\.com|pinterest\.com)$/i;
 
-  const decoded = decodeURIComponent(url);
-  // Only allow Pinterest CDN domains
-  if (!/pinimg\.com|pinterest\.com/i.test(decoded))
-    return res.status(403).json({ error: 'Invalid download source' });
+function parseDownloadTarget(raw) {
+  let target;
+  try {
+    target = new URL(raw);
+  } catch (_) {
+    return { error: 'Malformed download URL' };
+  }
+  // Host must be checked on the parsed hostname. A substring test would let
+  // https://evil.example/?x=pinimg.com through and turn this into an open
+  // redirect / SSRF hop.
+  if (target.protocol !== 'https:' && target.protocol !== 'http:')
+    return { error: 'Invalid download source' };
+  if (!ALLOWED_DOWNLOAD_HOSTS.test(target.hostname))
+    return { error: 'Invalid download source' };
+  return { target };
+}
 
-  const fn = (filename || 'klickpint.mp4').replace(/[^a-z0-9_.\-]/gi, '_');
+function safeFilename(filename) {
+  const fn = String(filename || 'klickpint.mp4')
+    .replace(/[^a-z0-9_.\-]/gi, '_')
+    .replace(/^\.+/, '')
+    .slice(0, 120);
+  return fn || 'klickpint.mp4';
+}
 
-  // Tell browser to download (not open) + set filename
+app.get('/api/download', async (req, res) => {
+  const { url, filename, proxy } = req.query;
+  if (!url || typeof url !== 'string')
+    return res.status(400).json({ error: 'URL required' });
+
+  const { target, error } = parseDownloadTarget(url);
+  if (error) return res.status(403).json({ error });
+
+  const fn = safeFilename(filename);
   res.setHeader('Content-Disposition', `attachment; filename="${fn}"`);
-  res.redirect(302, decoded);  // User downloads directly from Pinterest CDN
+
+  if (proxy !== '1') {
+    return res.redirect(302, target.href);  // zero VPS bandwidth
+  }
+
+  try {
+    const upstream = await axios.get(target.href, {
+      responseType : 'stream',
+      timeout      : 20000,
+      maxRedirects : 3,
+      headers      : { 'User-Agent': randomUA(), 'Referer': 'https://www.pinterest.com/' },
+    });
+
+    res.setHeader('Content-Type', upstream.headers['content-type'] || 'video/mp4');
+    if (upstream.headers['content-length'])
+      res.setHeader('Content-Length', upstream.headers['content-length']);
+
+    upstream.data.on('error', () => res.destroy());
+    req.on('close', () => upstream.data.destroy());
+    upstream.data.pipe(res);
+  } catch (err) {
+    console.error('[Proxy download failed]', err.message);
+    if (!res.headersSent) res.status(502).json({ error: 'Could not fetch the video file.' });
+    else res.destroy();
+  }
 });
 
 // ── Health + Stats ─────────────────────────────────────────────────────────
@@ -546,11 +714,38 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
-// ── SPA fallback ──────────────────────────────────────────────────────────
-app.get('*', (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// Browsers ask for /favicon.ico unprompted; point them at the SVG instead of
+// letting the request fall through and download a full 404 HTML page.
+app.get('/favicon.ico', (_, res) => res.redirect(301, '/favicon.svg'));
+
+// ── 404 ───────────────────────────────────────────────────────────────────
+// This is a static site, not an SPA. Serving index.html with a 200 for every
+// unknown path creates soft 404s: Google indexes /whatever-random-path as a
+// duplicate of the homepage. Answer with a real 404 instead.
+app.use((req, res) => {
+  if (req.path.startsWith('/api/'))
+    return res.status(404).json({ error: 'Not found' });
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
+// ── Error handler ─────────────────────────────────────────────────────────
+// Catches body-parser failures (malformed JSON, >10kb body) as well as any
+// synchronous throw in a route. Body-parser errors carry a real 4xx status
+// (400/413) — reporting all of them as a blanket 500 mislabels a client
+// mistake as a server failure.
+app.use((err, _req, res, _next) => {
+  console.error('[Unhandled]', err.message);
+  if (res.headersSent) return;
+  const status = (err.status || err.statusCode) >= 400 && (err.status || err.statusCode) < 500
+    ? (err.status || err.statusCode)
+    : 500;
+  res.status(status).json({
+    error: status < 500 ? (err.message || 'Bad request') : 'Something went wrong. Please try again.',
+  });
+});
 
 // ── Start ──────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════╗
 ║   🚀 KlickPint running on port ${PORT}   ║
@@ -559,4 +754,16 @@ app.listen(PORT, () => {
 ║   Retry logic: ON (3 attempts)         ║
 ╚════════════════════════════════════════╝
 `);
+  // ecosystem.config.js sets wait_ready:true. Without this signal PM2 waits
+  // out listen_timeout on every worker and can flag the app as errored.
+  if (process.send) process.send('ready');
 });
+
+// Graceful shutdown so in-flight downloads finish on reload/restart.
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => {
+    console.log(`[${sig}] shutting down…`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 4500).unref();
+  });
+}
