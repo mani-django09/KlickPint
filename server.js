@@ -222,8 +222,6 @@ app.set('trust proxy', 1);
 const stats = {
   totalDownloads : 0,   // /api/fetch requests (lookups), not actual file downloads
   todayDownloads : 0,
-  totalFiles     : 0,   // real /api/download hits — an actual file handed to a user
-  todayFiles     : 0,
   lastReset      : new Date().toDateString(),
   ipDownloads    : new Map(),
 };
@@ -232,7 +230,6 @@ setInterval(() => {
   const today = new Date().toDateString();
   if (stats.lastReset !== today) {
     stats.todayDownloads = 0;
-    stats.todayFiles = 0;
     stats.lastReset = today;
     stats.ipDownloads.clear();
     console.log('[Stats] Daily reset done');
@@ -350,6 +347,27 @@ function loadRecentActivityFromDisk() {
   } catch (_) { /* file doesn't exist yet on first run */ }
 }
 loadRecentActivityFromDisk();
+
+// Reads the FULL activity log fresh from disk. The admin endpoints use this
+// instead of `recentActivity` — PM2 cluster mode runs 2 worker processes
+// with no shared memory, so a request logged by worker A is invisible to
+// worker B's copy of `recentActivity`. Since the load balancer can route
+// any given admin request to either worker, the in-memory array alone would
+// show an incomplete, randomly-flickering slice of real activity. The disk
+// file is the one thing both workers actually share.
+function readActivityLog() {
+  try {
+    const raw = fs.readFileSync(ACTIVITY_LOG_PATH, 'utf8');
+    const rows = [];
+    for (const line of raw.split('\n')) {
+      if (!line) continue;
+      try { rows.push(JSON.parse(line)); } catch (_) {}
+    }
+    return rows;
+  } catch (_) {
+    return recentActivity.slice(); // file not created yet (first request after boot)
+  }
+}
 
 function logActivity(entry) {
   const record = {
@@ -813,8 +831,6 @@ app.get('/api/download', async (req, res) => {
   const fn = safeFilename(filename);
   res.setHeader('Content-Disposition', `attachment; filename="${fn}"`);
 
-  stats.totalFiles++;
-  stats.todayFiles++;
   logActivity({
     event : 'download',
     ip    : req.ip,
@@ -926,12 +942,23 @@ app.get('/api/admin/session', (req, res) => {
 });
 
 app.get('/api/admin/summary', requireAdmin, (req, res) => {
+  const all = readActivityLog();
+  const todayStr = new Date().toDateString();
+  const isToday = (e) => new Date(e.ts).toDateString() === todayStr;
+  const downloads = all.filter(e => e.event === 'download');
+  const fetches   = all.filter(e => e.event === 'fetch');
+  const todayIPs  = new Set(all.filter(isToday).map(e => e.ip).filter(Boolean));
+
   res.json({
-    totalDownloads : stats.totalFiles,      // real files served, not lookups
-    todayDownloads : stats.todayFiles,
-    totalFetches   : stats.totalDownloads,  // /api/fetch lookups (a user may fetch and never pick a quality)
-    todayFetches   : stats.todayDownloads,
-    activeIPs      : stats.ipDownloads.size,
+    totalDownloads : downloads.length,
+    todayDownloads : downloads.filter(isToday).length,
+    totalFetches   : fetches.length,
+    todayFetches   : fetches.filter(isToday).length,
+    activeIPs      : todayIPs.size,
+    // Rate-limit/abuse state (like the fetch limiter) lives in per-worker
+    // memory, same known cluster-mode limitation as pinterestHealth below —
+    // this count reflects whichever worker answers the request, not a
+    // combined total across both.
     bannedIPs      : [...abuseTracker.values()].filter(d => d.bannedUntil > Date.now()).length,
     cache          : { size: videoCache.size, maxSize: CACHE_MAX },
     memory         : `${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`,
@@ -948,7 +975,7 @@ app.get('/api/admin/activity', requireAdmin, (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
   const { ip, event, success, q } = req.query;
 
-  let rows = recentActivity;
+  let rows = readActivityLog();
   if (ip)      rows = rows.filter(r => r.ip === ip);
   if (event)   rows = rows.filter(r => r.event === event);
   if (success === 'true')  rows = rows.filter(r => r.success === true);
