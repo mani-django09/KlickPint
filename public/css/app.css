@@ -146,6 +146,10 @@ strong{color:var(--text);font-weight:650}
   transition:border-color .25s,box-shadow .25s;
 }
 .nav.is-stuck{border-bottom-color:var(--line);box-shadow:var(--sh-1)}
+/* Full-width override: the shared .wrap centers content at a 1160px max-
+   width, which leaves the logo floating well short of the true left edge
+   on wide screens. The nav bar itself should hug both edges instead. */
+.nav .wrap{max-width:none}
 .nav-in{display:flex;align-items:center;gap:16px;height:var(--nav-h)}
 
 .brand{display:flex;align-items:center;gap:11px;flex-shrink:0;margin-right:auto}
