@@ -100,3 +100,10 @@
 }
 .nf p{max-width:420px;margin:10px 0 26px}
 .nf-links{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+
+/* Reference tables inside prose pages (contact) */
+.prose table{width:100%;border-collapse:collapse;margin:18px 0;font-size:15px}
+.prose th,.prose td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+.prose th{background:var(--bg-soft);font-weight:700;color:var(--text)}
+.prose td{color:var(--text-2)}
+@media (max-width:640px){.prose table{display:block;overflow-x:auto}}
