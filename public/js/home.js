@@ -122,15 +122,49 @@ const SUBTITLE = {
   'HD'   : 'High quality',
 };
 
+function formatSize(bytes) {
+  if (!bytes) return '';
+  return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+}
+
+const MIME = { mp4: 'video/mp4', gif: 'image/gif', png: 'image/png', webp: 'image/webp', jpg: 'image/jpeg', jpeg: 'image/jpeg' };
+
+const previewBtn   = $('previewBtn');
+const previewVideo = $('previewVideo');
+
+function resetPreview() {
+  previewVideo.pause();
+  previewVideo.removeAttribute('src');
+  previewVideo.load();
+  previewVideo.style.display = 'none';
+}
+
+previewBtn.addEventListener('click', () => {
+  const src = previewBtn.dataset.src;
+  if (!src) return;
+  previewVideo.src = src;
+  previewVideo.style.display = 'block';
+  previewBtn.style.display = 'none';
+  previewVideo.play().catch(() => {});
+});
+
+previewVideo.addEventListener('error', () => {
+  resetPreview();
+  previewBtn.style.display = 'none';
+  toast('Preview unavailable for this video', 'err');
+});
+
 function render(d) {
   $('resultTitle').textContent = d.title || 'Pinterest Video';
+  const isVideo = d.mediaType === 'video';
+  const first   = d.qualities[0];
 
   /* tags */
   const tags = [];
-  if (d.qualities.some((q) => q.label === '1080p')) tags.push(['pill-ok', 'Full HD available']);
-  else if (d.qualities.some((q) => q.label === '720p')) tags.push(['pill-ok', 'HD available']);
+  if (isVideo && d.qualities.some((q) => q.label === '1080p')) tags.push(['pill-ok', 'Full HD available']);
+  else if (isVideo && d.qualities.some((q) => q.label === '720p')) tags.push(['pill-ok', 'HD available']);
   if (d.duration) tags.push(['', d.duration]);
-  tags.push(['', 'MP4']);
+  tags.push(['', d.mediaType === 'gif' ? 'GIF' : isVideo ? 'MP4' : 'Image']);
   $('resultTags').innerHTML =
     '<span class="pill pill-brand">Pinterest</span>' +
     tags.map(([cls, txt]) => `<span class="pill ${cls}">${esc(txt)}</span>`).join('');
@@ -153,24 +187,56 @@ function render(d) {
     empty.style.display = 'flex';
   }
 
+  /* preview: the smallest video file, so it starts fast */
+  resetPreview();
+  const previewQ = isVideo ? (d.qualities.find((q) => q.label === '480p') || d.qualities[d.qualities.length - 1]) : null;
+  previewBtn.dataset.src = previewQ ? previewQ.url : '';
+  previewBtn.style.display = previewQ ? 'flex' : 'none';
+  if (previewQ && !d.thumbnail) empty.style.display = 'none';
+
   /* quality buttons */
   const grid = $('qualGrid');
   grid.innerHTML = '';
+  document.querySelector('.qual-head .t').textContent = isVideo ? 'Choose a quality' : 'Choose a size';
   $('qualCount').textContent = d.qualities.length + (d.qualities.length === 1 ? ' option' : ' options');
 
   d.qualities.forEach((q, i) => {
+    const kind = (q.ext || 'mp4').toUpperCase();
+    const desc = isVideo ? (SUBTITLE[q.label] || 'Video') : (q.tag || (q.type === 'gif' ? 'Animated' : 'Image'));
+    const sub  = [desc, kind, formatSize(q.size)].filter(Boolean).join(' · ');
+
+    const wrap = document.createElement('div');
+    wrap.className = 'q-wrap';
+
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'q' + (i === 0 ? ' best' : '');
-    btn.setAttribute('aria-label', `Download ${q.label} MP4`);
+    btn.setAttribute('aria-label', `Download ${q.label} ${kind}`);
     btn.innerHTML =
       `<span><span class="l">${esc(q.label)}</span>` +
-      `<span class="s">${esc(SUBTITLE[q.label] || 'Video')} · MP4</span></span>` +
+      `<span class="s">${esc(sub)}</span></span>` +
       `<span class="ic" aria-hidden="true">` +
       `<svg viewBox="0 0 24 24"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M4 21h16"/></svg>` +
       `</span>`;
     btn.addEventListener('click', () => download(q, d));
-    grid.appendChild(btn);
+
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'q-copy';
+    copy.setAttribute('aria-label', `Copy direct link for ${q.label}`);
+    copy.title = 'Copy direct link';
+    copy.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
+    copy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(q.url);
+        toast('Direct link copied', 'ok');
+      } catch (_) {
+        toast('Could not copy. Long-press the download button instead.', 'err');
+      }
+    });
+
+    wrap.append(btn, copy);
+    grid.appendChild(wrap);
   });
 
   result.classList.add('show');
@@ -216,13 +282,13 @@ function finish(msg, label) {
   setTimeout(() => { prog.classList.remove('show'); busy = false; }, 2800);
 }
 
-function buildFilename(title, label) {
+function buildFilename(title, label, ext) {
   const slug = (title || 'pinterest-video')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 48) || 'pinterest-video';
-  return `klickpint-${slug}-${label}.mp4`;
+  return `klickpint-${slug}-${label.toLowerCase()}.${ext || 'mp4'}`;
 }
 
 function saveBlob(blob, filename) {
@@ -239,7 +305,7 @@ function saveBlob(blob, filename) {
 // Reads a fetch() Response body into a Blob while updating the progress
 // bar from real byte counts. Throws if the response isn't OK/streamable —
 // callers decide what to do next.
-async function streamToBlob(endpoint, label) {
+async function streamToBlob(endpoint, label, mime) {
   const res = await fetch(endpoint);
   if (!res.ok || !res.body) throw new Error(`stream unavailable (${res.status})`);
 
@@ -259,7 +325,7 @@ async function streamToBlob(endpoint, label) {
     else progStatus.textContent = `Downloading ${label}… ${(received / 1048576).toFixed(1)} MB`;
   }
 
-  return new Blob(chunks, { type: 'video/mp4' });
+  return new Blob(chunks, { type: mime });
 }
 
 async function download(q, d) {
@@ -267,7 +333,8 @@ async function download(q, d) {
   if (!q.url) return toast('Download link unavailable', 'err');
 
   busy = true;
-  const filename = buildFilename(d.title, q.label);
+  const mime     = MIME[q.ext] || 'application/octet-stream';
+  const filename = buildFilename(d.title, q.label, q.ext);
   const base    = `/api/download?url=${encodeURIComponent(q.url)}&filename=${encodeURIComponent(filename)}`
     + (d.pinId ? `&pinId=${encodeURIComponent(d.pinId)}` : '')
     + `&label=${encodeURIComponent(q.label)}`;
@@ -288,10 +355,10 @@ async function download(q, d) {
   try {
     let blob;
     try {
-      blob = await streamToBlob(direct, q.label);
+      blob = await streamToBlob(direct, q.label, mime);
     } catch (_) {
       setPct(0);
-      blob = await streamToBlob(proxied, q.label);
+      blob = await streamToBlob(proxied, q.label, mime);
     }
     saveBlob(blob, filename);
     finish('Saved to your device', q.label);
@@ -316,3 +383,29 @@ async function download(q, d) {
     }
   }
 }
+
+/* ── Download another ──────────────────────────────────────────────────── */
+$('anotherBtn').addEventListener('click', () => {
+  resetPreview();
+  result.classList.remove('show');
+  urlInput.value = '';
+  clearBtn.style.display = 'none';
+  hideAlert();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  urlInput.focus();
+});
+
+/* ── Share target / ?url= ──────────────────────────────────────────────────
+   The PWA manifest registers KlickPint as a share target, so sharing a pin
+   from the Pinterest app opens /?url=...&text=.... Pull the first Pinterest
+   link out of whichever field carries it and fetch it straight away. */
+(function fromShare() {
+  const params = new URLSearchParams(location.search);
+  const blob   = ['url', 'text', 'title'].map((k) => params.get(k) || '').join(' ');
+  const match  = blob.match(/https?:\/\/(?:[a-z0-9-]+\.)*(?:pinterest\.[a-z.]+|pin\.it)\/\S+/i);
+  if (!match) return;
+  urlInput.value = match[0];
+  clearBtn.style.display = 'flex';
+  history.replaceState(null, '', location.pathname);
+  fetchBtn.click();
+})();

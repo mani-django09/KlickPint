@@ -67,3 +67,10 @@ window.toast = function toast(msg, type) {
 document.querySelectorAll('[data-year]').forEach((el) => {
   el.textContent = String(new Date().getFullYear());
 });
+
+/* ── Service worker (offline shell + installable PWA / share target) ───── */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}

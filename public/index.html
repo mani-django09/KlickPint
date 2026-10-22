@@ -31,6 +31,7 @@
 <meta property="og:image" content="https://klickpint.online/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="KlickPint: free Pinterest video downloader">
 <meta property="og:locale" content="en_US">
 <meta property="og:site_name" content="KlickPint">
 
@@ -40,11 +41,13 @@
 <meta name="twitter:title" content="KlickPint – Free Pinterest Video Downloader">
 <meta name="twitter:description" content="Download Pinterest videos free in HD 1080p. No login needed.">
 <meta name="twitter:image" content="https://klickpint.online/og.jpg">
+<meta name="twitter:image:alt" content="KlickPint: free Pinterest video downloader">
 
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="manifest" href="/site.webmanifest">
+<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 
 <!-- Schema.org -->
 <script type="application/ld+json">
@@ -151,11 +154,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="/css/app.css?v=20260927b">
-<link rel="stylesheet" href="/css/home.css?v=20260927b">
+<link rel="stylesheet" href="/css/app.css?v=20261022a">
+<link rel="stylesheet" href="/css/home.css?v=20261022a">
 </head>
 <body>
 
@@ -221,6 +221,7 @@
         <span class="trust"><svg viewBox="0 0 24 24"><path d="m4 12 6 6L20 6"/></svg> No watermark</span>
         <span class="trust"><svg viewBox="0 0 24 24"><path d="m4 12 6 6L20 6"/></svg> No account</span>
         <span class="trust"><svg viewBox="0 0 24 24"><path d="m4 12 6 6L20 6"/></svg> 1080p free</span>
+        <span class="trust"><svg viewBox="0 0 24 24"><path d="m4 12 6 6L20 6"/></svg> Free, ad-supported</span>
         <span class="trust"><svg viewBox="0 0 24 24"><path d="m4 12 6 6L20 6"/></svg> pin.it supported</span>
         <span class="trust"><svg viewBox="0 0 24 24"><path d="m4 12 6 6L20 6"/></svg> Works on mobile</span>
       </div>
@@ -265,7 +266,11 @@
       <section class="result" id="result" aria-live="polite" aria-label="Download options">
         <div class="result-head">
           <div class="thumb">
-            <img id="thumbImg" alt="" style="display:none" decoding="async">
+            <img id="thumbImg" alt="" width="160" height="160" style="display:none" decoding="async">
+            <video id="previewVideo" controls playsinline muted preload="none" style="display:none"></video>
+            <button class="thumb-play" id="previewBtn" type="button" aria-label="Preview the video" style="display:none">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>
+            </button>
             <div class="thumb-empty" id="thumbEmpty">
               <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m10 9 5 3-5 3z"/></svg>
               No preview
@@ -294,6 +299,10 @@
           <div class="prog-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Download progress">
             <div class="prog-fill" id="progFill"></div>
           </div>
+        </div>
+
+        <div class="result-actions">
+          <button class="btn btn-ghost" id="anotherBtn" type="button">Download another</button>
         </div>
       </section>
     </div>

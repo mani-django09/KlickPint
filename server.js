@@ -110,6 +110,16 @@ function recordPinterestFailure() {
   }
 }
 
+// Errors the user should see verbatim. Anything else is mapped to a generic
+// message so axios internals ("Request failed with status code 429") never leak.
+class PinError extends Error {
+  constructor(code, message, status = 400) {
+    super(message);
+    this.code   = code;
+    this.status = status;
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  ANTI-BAN: Retry with exponential back-off
 // ══════════════════════════════════════════════════════════════════
@@ -121,6 +131,9 @@ async function withRetry(fn, maxAttempts = 3, baseDelay = 1000) {
       const isLast = attempt === maxAttempts;
       const is429  = err.response?.status === 429;
       const is403  = err.response?.status === 403;
+
+      // A deleted pin stays deleted; retrying only burns time and requests.
+      if (err.response?.status === 404 || err.response?.status === 410) throw err;
 
       if (isLast) {
         // Record exactly once per failed operation, right before giving up
@@ -187,7 +200,49 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 // ── Security & Performance ─────────────────────────────────────────────────
-app.use(helmet({ contentSecurityPolicy: false }));
+// Content-Security-Policy. The pages use a few inline scripts (theme bootstrap,
+// gtag, JSON-LD), so 'unsafe-inline' stays for script/style. The real protection
+// is the host allow-list: only our own origin plus Google Analytics
+// and Google AdSense can load scripts, and nothing can be framed or posted
+// elsewhere. Images/media may come from any https host because ads and Pinterest
+// thumbnails/previews are served from many CDN hostnames.
+const GOOGLE_ADS_HOSTS = [
+  'https://pagead2.googlesyndication.com',
+  'https://*.googlesyndication.com',
+  'https://*.doubleclick.net',
+  'https://*.g.doubleclick.net',
+  'https://www.googleadservices.com',
+  'https://partner.googleadservices.com',
+  'https://adservice.google.com',
+  'https://www.google.com',
+  'https://*.adtrafficquality.google',
+  'https://fundingchoicesmessages.google.com',
+];
+const GOOGLE_ANALYTICS_HOSTS = [
+  'https://www.googletagmanager.com',
+  'https://*.google-analytics.com',
+  'https://*.analytics.google.com',
+];
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      defaultSrc : ["'self'"],
+      scriptSrc  : ["'self'", "'unsafe-inline'", ...GOOGLE_ANALYTICS_HOSTS, ...GOOGLE_ADS_HOSTS],
+      styleSrc   : ["'self'", "'unsafe-inline'"],
+      fontSrc    : ["'self'", 'data:'],
+      imgSrc     : ["'self'", 'data:', 'blob:', 'https:'],
+      mediaSrc   : ["'self'", 'blob:', 'https:'],
+      connectSrc : ["'self'", ...GOOGLE_ANALYTICS_HOSTS, ...GOOGLE_ADS_HOSTS],
+      frameSrc   : [...GOOGLE_ADS_HOSTS],
+      objectSrc  : ["'none'"],
+      baseUri    : ["'self'"],
+      formAction : ["'self'"],
+      frameAncestors: ["'self'"],
+      ...(process.env.NODE_ENV === 'production' ? { upgradeInsecureRequests: [] } : {}),
+    },
+  },
+}));
 app.use(compression());
 
 // Log the path only — never the query string. /api/download carries the
@@ -195,7 +250,20 @@ app.use(compression());
 // not retain submitted URLs, so it must not land in the access log.
 morgan.token('pathonly', req => req.originalUrl.split('?')[0]);
 app.use(morgan(':remote-addr :method :pathonly :status :res[content-length] - :response-time ms'));
-app.use(cors());
+// The site and its API are same-origin, so cross-origin browser access is not
+// needed. Only our own domains (and localhost for development) are allowed.
+const ALLOWED_ORIGINS = new Set([
+  'https://klickpint.online',
+  'https://www.klickpint.online',
+  'http://localhost:' + PORT,
+  'http://127.0.0.1:' + PORT,
+]);
+app.use('/api', cors({
+  origin(origin, cb) {
+    // No Origin header = same-origin navigation, curl or a server: nothing to block.
+    cb(null, !origin || ALLOWED_ORIGINS.has(origin));
+  },
+}));
 app.use(express.json({ limit: '10kb' }));  // prevent large body attacks
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge     : '1d',
@@ -248,9 +316,12 @@ const fetchLimiter = rateLimit({
   legacyHeaders  : false,
   handler: (req, res) => {
     console.warn(`[RATELIMIT] ${req.ip} hit hourly limit`);
+    const resetAt    = req.rateLimit?.resetTime ? new Date(req.rateLimit.resetTime).getTime() : 0;
+    const retryAfter = resetAt ? Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)) : 3600;
     res.status(429).json({
-      error   : 'RATE_LIMIT',
-      message : 'You have reached the hourly limit. Please try again later.',
+      code       : 'RATE_LIMIT',
+      error      : `You have reached the hourly limit. Please try again in ${Math.ceil(retryAfter / 60)} min.`,
+      retryAfter,
     });
   },
 });
@@ -576,10 +647,10 @@ async function resolveUrl(rawUrl) {
   try {
     parsed = new URL(rawUrl);
   } catch (_) {
-    throw new Error('Please enter a valid Pinterest URL.');
+    throw new PinError('INVALID_URL', 'Please enter a valid Pinterest URL.');
   }
   if (!isPinterestHost(parsed.hostname)) {
-    throw new Error('Please enter a valid Pinterest URL.');
+    throw new PinError('INVALID_URL', 'Please enter a valid Pinterest URL.');
   }
 
   const resp = await withRetry(() =>
@@ -593,7 +664,7 @@ async function resolveUrl(rawUrl) {
   const finalUrl = resp.request?.res?.responseUrl || resp.config?.url || rawUrl;
   const m = finalUrl.match(/\/pin\/(\d+)/);
   if (m) return { pinId: m[1], cleanUrl: `https://www.pinterest.com/pin/${m[1]}/` };
-  throw new Error('Could not extract Pin ID. Please use a direct pinterest.com link.');
+  throw new PinError('PIN_NOT_FOUND', "That link doesn't lead to a pin. It may have been deleted, or it points to a board or profile.", 404);
 }
 
 // ── Pinterest API (primary method) ────────────────────────────────────────
@@ -675,11 +746,45 @@ async function fetchViaHTML(cleanUrl) {
   return result;
 }
 
+// ── Image / GIF pins ───────────────────────────────────────────────────────
+function extFromUrl(url, fallback) {
+  const m = String(url).split('?')[0].match(/\.([a-z0-9]{2,4})$/i);
+  return m ? m[1].toLowerCase() : fallback;
+}
+
+function buildImageQualities(images) {
+  const out  = [];
+  const orig = images?.orig;
+  if (!orig?.url) return out;
+  const ext  = extFromUrl(orig.url, 'jpg');
+  const gif  = ext === 'gif';
+  const dims = orig.width && orig.height ? `${orig.width}x${orig.height}` : '';
+  out.push({ label: gif ? 'GIF' : 'Original', tag: dims, url: orig.url, type: gif ? 'gif' : 'image', ext });
+  const mid = images['736x'];
+  if (!gif && mid?.url && mid.url !== orig.url)
+    out.push({ label: 'Medium', tag: '736px', url: mid.url, type: 'image', ext: extFromUrl(mid.url, 'jpg') });
+  return out;
+}
+
+// Ask the CDN how big each file is so the buttons can show it. Best effort:
+// a slow or failing HEAD just leaves that button without a size.
+async function addFileSizes(qualities) {
+  const headers = { 'User-Agent': randomUA(), 'Referer': 'https://www.pinterest.com/' };
+  await Promise.all(qualities.map(async (q) => {
+    const { target } = parseDownloadTarget(q.url);
+    if (!target) { q.size = 0; return; }
+    try {
+      const r = await axios.head(target.href, { timeout: 3000, maxRedirects: 2, headers });
+      q.size = Number(r.headers['content-length']) || 0;
+    } catch (_) { q.size = 0; }
+  }));
+}
+
 // ── Main orchestrator ──────────────────────────────────────────────────────
 async function getPinInfo(rawUrl) {
   // Check Pinterest cool-down
   if (!pinterestOk()) {
-    throw new Error('Service temporarily unavailable. Pinterest rate-limited us. Please try again in a few minutes.');
+    throw new PinError('COOLDOWN', 'Pinterest is limiting our requests right now. Please try again in a few minutes.', 503);
   }
 
   const { pinId, cleanUrl } = await resolveUrl(rawUrl);
@@ -690,7 +795,7 @@ async function getPinInfo(rawUrl) {
     console.log(`[Cache HIT] pin/${pinId}`);
     return cached;
   }
-  let title = 'Pinterest Video', thumbnail = '', qualities = [], duration = 0;
+  let title = 'Pinterest Video', thumbnail = '', qualities = [], duration = 0, mediaType = 'video';
 
   try {
     const pinData = await fetchViaAPI(pinId);
@@ -702,7 +807,15 @@ async function getPinInfo(rawUrl) {
     thumbnail = pinData.images?.orig?.url || pinData.images?.['736x']?.url || '';
     const vl  = pinData.videos?.video_list || {};
     duration  = vl.V_720P?.duration || vl.V_480P?.duration || vl.V_1080P?.duration || 0;
+    if (!qualities.length) {
+      qualities = buildImageQualities(pinData.images);
+      if (qualities.length) mediaType = qualities[0].type;
+    }
   } catch (e) {
+    const status = e.response?.status;
+    if (status === 404 || status === 410)
+      throw new PinError('PIN_NOT_FOUND', 'This pin was deleted or does not exist.', 404);
+
     // NOT recordPinterestFailure() here — withRetry() already records it,
     // exactly once, but only for real 429/403 responses. This catch also
     // fires for things that have nothing to do with Pinterest blocking us
@@ -717,15 +830,21 @@ async function getPinInfo(rawUrl) {
       title     = scraped.title     || title;
       thumbnail = scraped.thumbnail || thumbnail;
       if (scraped.videos.length > 0) recordPinterestSuccess();
+      else if (thumbnail) {
+        qualities = [{ label: 'Original', tag: '', url: thumbnail, type: 'image', ext: extFromUrl(thumbnail, 'jpg') }];
+        mediaType = 'image';
+      }
     } catch (e2) {
       console.error('[HTML fail]', e2.message);
     }
   }
 
-  qualities = deduplicateAndSort(qualities).map(q => ({ ...q, locked: false }));
+  if (mediaType === 'video') qualities = deduplicateAndSort(qualities);
+  qualities = qualities.map(q => ({ ...q, ext: q.ext || 'mp4' }));
 
   const result = {
     pinId,
+    mediaType,
     title    : (title || 'Pinterest Video').substring(0, 100),
     thumbnail,
     duration : formatDuration(normalizeDuration(duration)),
@@ -734,6 +853,7 @@ async function getPinInfo(rawUrl) {
 
   // ── Cache result for 30 min ───────────────────────────────────────────
   if (qualities.length > 0) {
+    await addFileSizes(qualities);
     cacheSet(pinId, result);
     console.log(`[Cache SET] pin/${pinId} — ${qualities.length} qualities`);
   }
@@ -749,7 +869,7 @@ async function getPinInfo(rawUrl) {
 app.post('/api/fetch', fetchLimiter, async (req, res) => {
   const { url } = req.body;
   if (!url || typeof url !== 'string' || url.length > 500)
-    return res.status(400).json({ error: 'Please enter a valid Pinterest URL' });
+    return res.status(400).json({ code: 'INVALID_URL', error: 'Please enter a valid Pinterest URL' });
   // Case-insensitive substring check — the old version used a plain
   // case-sensitive .includes(), which rejected otherwise-valid links pasted
   // or typed in mixed case (e.g. "Pinterest.com/..."), even though the
@@ -757,7 +877,7 @@ app.post('/api/fetch', fetchLimiter, async (req, res) => {
   // cheap pre-filter only; resolveUrl() does the real host-allowlist check
   // before any outbound request is made.
   if (!/pinterest|pin\.it/i.test(url))
-    return res.status(400).json({ error: 'Please enter a valid Pinterest URL' });
+    return res.status(400).json({ code: 'INVALID_URL', error: 'Please enter a valid Pinterest URL' });
 
   // Track stats
   const ip     = req.ip;
@@ -772,15 +892,21 @@ app.post('/api/fetch', fetchLimiter, async (req, res) => {
     const data = await getPinInfo(url);
     if (!data.qualities.length) {
       logActivity({ event: 'fetch', ip, pinId: data.pinId || null, success: false, error: 'no video found', qualities: 0 });
-      return res.status(404).json({ error: 'No video found in this pin. It may be an image pin or a private pin.' });
+      return res.status(404).json({ code: 'NO_MEDIA', error: 'This pin has no downloadable video or image. It may be private, or a text-only pin.' });
     }
-    logActivity({ event: 'fetch', ip, pinId: data.pinId, title: data.title, success: true, qualities: data.qualities.length });
+    logActivity({ event: 'fetch', ip, pinId: data.pinId, title: data.title, mediaType: data.mediaType, success: true, qualities: data.qualities.length });
     res.json({ success: true, data });
   } catch (err) {
     console.error('[Fetch error]', err.message);
     logActivity({ event: 'fetch', ip, pinId: null, success: false, error: err.message });
-    const isCooldown = err.message.includes('temporarily unavailable');
-    res.status(isCooldown ? 503 : 500).json({ error: err.message || 'Could not fetch video. Please try again.' });
+    if (err instanceof PinError)
+      return res.status(err.status).json({ code: err.code, error: err.message });
+    const upstream = err.response?.status;
+    if (upstream === 429 || upstream === 403)
+      return res.status(502).json({ code: 'PINTEREST_BLOCKED', error: 'Pinterest refused the request. The pin may be private, or Pinterest is limiting us. Try again in a few minutes.' });
+    if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT')
+      return res.status(504).json({ code: 'TIMEOUT', error: 'Pinterest took too long to respond. Please try again.' });
+    res.status(500).json({ code: 'FETCH_FAILED', error: 'Could not fetch this pin. Please try again.' });
   }
 });
 
@@ -852,7 +978,7 @@ app.get('/api/download', async (req, res) => {
       headers      : { 'User-Agent': randomUA(), 'Referer': 'https://www.pinterest.com/' },
     });
 
-    res.setHeader('Content-Type', upstream.headers['content-type'] || 'video/mp4');
+    res.setHeader('Content-Type', upstream.headers['content-type'] || 'application/octet-stream');
     if (upstream.headers['content-length'])
       res.setHeader('Content-Length', upstream.headers['content-length']);
 

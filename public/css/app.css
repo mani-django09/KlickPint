@@ -1,3 +1,6 @@
+/* Self-hosted so first paint never waits on fonts.googleapis.com */
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 900;font-display:swap;src:url('/fonts/inter-latin.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/jetbrains-mono-latin.woff2') format('woff2')}
 /* ==========================================================================
    KlickPint — Design System
    Tokens → Primitives → Components → Utilities → Responsive

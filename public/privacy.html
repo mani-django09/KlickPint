@@ -26,11 +26,13 @@
 <meta property="og:image" content="https://klickpint.online/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="KlickPint: free Pinterest video downloader">
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Privacy Policy – KlickPint">
 <meta name="twitter:description" content="KlickPint Privacy Policy. Learn what data we do and do not collect when you use our free Pinterest video downloader.">
 <meta name="twitter:image" content="https://klickpint.online/og.jpg">
+<meta name="twitter:image:alt" content="KlickPint: free Pinterest video downloader">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
@@ -38,9 +40,7 @@
 <script>
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/css/app.css">
 <link rel="stylesheet" href="/css/page.css">
 </head>
@@ -115,7 +115,6 @@
   <h2>4. Third-Party Services</h2>
   <p>KlickPint uses the following third-party services:</p>
   <ul>
-    <li><strong>Google Fonts</strong>: to load typography. Google may log your IP when fonts are fetched. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's Privacy Policy</a>.</li>
     <li><strong>Pinterest CDN</strong>: video files live on Pinterest's servers, not ours. By default your browser is redirected to Pinterest's CDN and downloads the file directly, which means Pinterest's CDN does see your IP address. If that redirect is blocked, we stream the file through our server instead and your IP is not passed on. Either way, we never store the file.</li>
     <li><strong>Google Analytics</strong>: to see how many people use KlickPint and which pages they visit. It sets cookies (<code>_ga</code> and similar) and collects your approximate location (from IP, which Google does not retain in full), device and browser type, pages viewed, and how you got here. This data is Google's, governed by their <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>, and retained for up to 14 months under our Analytics settings. You can opt out with the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer">Google Analytics Opt-out Browser Add-on</a>, or by using a browser/extension that blocks third-party trackers.</li>
   </ul>

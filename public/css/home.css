@@ -161,7 +161,7 @@
 .qual-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .qual-head .t{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)}
 .qual-head .c{font-size:.78rem;color:var(--text-3)}
-.qual-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.qual-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px}
 .q{
   display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;
   background:var(--bg-sunk);border:1.5px solid var(--line);border-radius:var(--r-sm);
@@ -345,3 +345,26 @@ tbody tr:hover td{background:var(--bg-sunk)}
   .field-btn{border-left:none;border-top:1px solid var(--line);flex:1;justify-content:center;padding-block:11px}
   #clearBtn{border-top:1px solid var(--line);flex:0 0 auto}
 }
+
+/* ── Preview, copy link, actions ─────────────────────────────────────── */
+.thumb{position:relative}
+.thumb video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.thumb-play{
+  position:absolute;inset:0;margin:auto;width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;border:0;cursor:pointer;
+  background:rgba(0,0,0,.62);color:#fff;transition:transform .18s var(--ease),background .18s;
+}
+.thumb-play:hover{transform:scale(1.08);background:var(--brand)}
+.thumb-play svg{width:22px;height:22px;fill:currentColor;margin-left:3px}
+.q-wrap{display:flex;gap:6px;align-items:stretch}
+.q-wrap .q{flex:1;min-width:0}
+.q-copy{
+  flex:0 0 40px;display:grid;place-items:center;cursor:pointer;
+  background:var(--bg-sunk);border:1.5px solid var(--line);border-radius:var(--r-sm);color:var(--text-3);
+  transition:.18s var(--ease);
+}
+.q-copy:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
+.q-copy svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.result-actions{padding:0 20px 20px;display:flex;justify-content:center}
+.q .l,.q .s{display:block}
+.q .s{line-height:1.35}
