@@ -55,7 +55,7 @@
       "@type": "WebApplication",
       "name": "KlickPint",
       "url": "https://klickpint.online",
-      "description": "Free Pinterest video downloader. Download any Pinterest video in HD 1080p, 720p, 480p or 360p — no login, no watermark, completely free.",
+      "description": "Free Pinterest video downloader. Download any Pinterest video in HD 1080p, 720p, 480p or 360p. No login, no watermark, completely free.",
       "applicationCategory": "UtilitiesApplication",
       "operatingSystem": "Any",
       "browserRequirements": "Requires JavaScript",
@@ -97,7 +97,7 @@
           "name": "Is KlickPint completely free to use?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, KlickPint is 100% free — no subscription, no credit card, no premium tier. HD 1080p and unlimited downloads, all free."
+            "text": "Yes, KlickPint is 100% free. There is no subscription, credit card or premium tier, and 1080p and unlimited downloads are free too. The site is supported by ads."
           }
         },
         {
@@ -105,7 +105,7 @@
           "name": "Does KlickPint work with pin.it short links?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Paste whatever link Pinterest gives you — a full pinterest.com/pin/ URL or a short pin.it link — and KlickPint resolves it automatically."
+            "text": "Yes. Paste a full pinterest.com/pin/ URL or a short pin.it link and KlickPint resolves it automatically."
           }
         },
         {
@@ -113,7 +113,7 @@
           "name": "What video quality can I download from Pinterest?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "KlickPint shows every quality Pinterest stores for that video — typically Full HD 1080p, HD 720p, SD 480p and 360p. You choose what you want."
+            "text": "KlickPint shows every quality Pinterest stores for that video, usually 1080p, 720p, 480p and 360p. You choose what you want."
           }
         },
         {
@@ -121,7 +121,7 @@
           "name": "Do I need an account to use KlickPint?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No account, no sign-up, no email address. Paste your Pinterest URL and download. That's the whole flow."
+            "text": "No account, no sign-up, no email address. Paste your Pinterest URL and download."
           }
         },
         {
@@ -129,7 +129,7 @@
           "name": "Does KlickPint work on iPhone and Android?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes — KlickPint works in any browser on any device: iPhone, Android, iPad, Mac, Windows. No app needed."
+            "text": "Yes. KlickPint works in any browser on any device: iPhone, Android, iPad, Mac, Windows. No app needed."
           }
         },
         {
@@ -146,7 +146,7 @@
 }
 </script>
 
-<!-- Theme boot — runs before paint so there is no flash -->
+<!-- Theme boot: runs before paint so there is no flash -->
 <script>
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
@@ -154,8 +154,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="/css/app.css">
-<link rel="stylesheet" href="/css/home.css">
+<link rel="stylesheet" href="/css/app.css?v=20260927b">
+<link rel="stylesheet" href="/css/home.css?v=20260927b">
 </head>
 <body>
 
@@ -214,7 +214,7 @@
 
       <p class="hero-lead">
         Found a video worth keeping? KlickPint pulls the original file straight from
-        Pinterest in <strong>full HD</strong> — no account, no watermark, no waiting.
+        Pinterest in full HD. No account, no watermark.
       </p>
 
       <div class="trust-row">
@@ -253,7 +253,7 @@
           <span id="btnText">Get Video</span>
         </button>
 
-        <p class="hint">Tip: press <kbd>Enter</kbd> after pasting — nothing is stored on our servers.</p>
+        <p class="hint">Tip: press <kbd>Enter</kbd> after pasting. We never save the video itself.</p>
 
         <div class="alert" id="alertBox" role="alert" aria-live="assertive">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
@@ -318,26 +318,26 @@
     <div class="sec-head center">
       <span class="eyebrow">Why KlickPint</span>
       <h2>Built for people who just want their video</h2>
-      <p>One job, done properly. No upsells, no pop-ups, no five-step funnel before you get the file.</p>
+      <p>One job, done properly. You get the file without upsells or a five-step funnel.</p>
     </div>
 
     <div class="feat-grid">
       <article class="feat">
         <div class="feat-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12z"/></svg></div>
-        <h3>Genuinely fast</h3>
+        <h3>Fast</h3>
         <p>Results in about a second. Popular pins are cached, so repeat links come back instantly.</p>
       </article>
 
       <article class="feat">
         <div class="feat-ico g" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="m10 9.5 5 2.5-5 2.5z"/></svg></div>
         <h3>Full HD, no paywall</h3>
-        <p>Every quality Pinterest stores for that pin — up to 1080p — is unlocked from the first click.</p>
+        <p>Every quality Pinterest stores for that pin, up to 1080p, is available from the first click.</p>
       </article>
 
       <article class="feat">
         <div class="feat-ico b" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7L11.7 5.3"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12.3 18.7"/></svg></div>
         <h3>Any Pinterest link</h3>
-        <p>Full pin URLs, short pin.it links, app share links. Paste whatever you copied — we resolve it.</p>
+        <p>Full pin URLs, short pin.it links, app share links. Paste whatever you copied and we resolve it.</p>
       </article>
 
       <article class="feat">
@@ -349,13 +349,13 @@
       <article class="feat">
         <div class="feat-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18.5h2"/></svg></div>
         <h3>Made for mobile</h3>
-        <p>The layout, the paste button, the download flow — all tuned for a phone browser first.</p>
+        <p>The layout, the paste button and the download flow are all tuned for a phone browser first.</p>
       </article>
 
       <article class="feat">
         <div class="feat-ico g" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8.4 8 9.5 4.6-1.1 8-4.5 8-9.5V6z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <h3>No ads, ever</h3>
-        <p>No ad network, no ad trackers, nothing for sale. We use Google Analytics to see how many people use the tool — see our <a href="/privacy.html">Privacy Policy</a> for what that means.</p>
+        <h3>Free, and honest about how</h3>
+        <p>KlickPint is free and is supported by Google ads. We also use Google Analytics to see how the tool is used, and we never sell your data. Our <a href="/privacy.html">Privacy Policy</a> lists exactly what is collected and how to opt out.</p>
       </article>
     </div>
   </div>
@@ -367,7 +367,7 @@
     <div class="sec-head center">
       <span class="eyebrow">How it works</span>
       <h2>Four steps, about ten seconds</h2>
-      <p>No tutorial needed — but here it is anyway.</p>
+      <p>No tutorial needed, but here it is anyway.</p>
     </div>
 
     <div class="steps">
@@ -377,7 +377,7 @@
       </article>
       <article class="step">
         <h3>Paste it here</h3>
-        <p>Hit the Paste button or press Ctrl&nbsp;+&nbsp;V, then Enter. That's the whole input step.</p>
+        <p>Hit the Paste button or press Ctrl&nbsp;+&nbsp;V, then Enter.</p>
       </article>
       <article class="step">
         <h3>Pick a quality</h3>
@@ -397,7 +397,7 @@
     <div class="sec-head center">
       <span class="eyebrow">Formats</span>
       <h2>Supported qualities</h2>
-      <p>Whatever Pinterest stored for that pin is what you get — free, every time.</p>
+      <p>You get whatever Pinterest stored for that pin, free every time.</p>
     </div>
 
     <div class="tbl-wrap">
@@ -430,33 +430,33 @@
     <div class="sec-head center">
       <span class="eyebrow">FAQ</span>
       <h2>Frequently asked questions</h2>
-      <p>Straight answers to what people actually ask.</p>
+      <p>Straight answers to what people ask.</p>
     </div>
 
     <div class="faq" style="margin-inline:auto">
       <details>
         <summary>Is KlickPint really free? What's the catch?</summary>
-        <div class="a">There isn't one. No subscription, no card, no "basic vs premium" split. 1080p and unlimited downloads are free, and that isn't changing.</div>
+        <div class="a">No subscription, no card, no "basic vs premium" split. 1080p and unlimited downloads are free. The site pays for itself with ads.</div>
       </details>
       <details>
         <summary>Does it work with pin.it short links?</summary>
-        <div class="a">Yes. Paste a full <code>pinterest.com/pin/…</code> URL or a short <code>pin.it</code> link from the app's Share button — both resolve automatically, no editing needed.</div>
+        <div class="a">Yes. Paste a full <code>pinterest.com/pin/…</code> URL or a short <code>pin.it</code> link from the app's Share button. Both resolve automatically, no editing needed.</div>
       </details>
       <details>
         <summary>What quality options will I get?</summary>
-        <div class="a">Whatever Pinterest actually stored for that pin — usually 1080p, 720p, 480p and 360p. If a pin was uploaded at low resolution, 1080p simply won't exist for it. We show you the real list, not a fake one. Not sure which to pick? Our <a href="/blog/pinterest-video-quality-guide.html">quality guide</a> breaks down what each one is actually good for.</div>
+        <div class="a">Whatever Pinterest stored for that pin, usually 1080p, 720p, 480p and 360p. If a pin was uploaded at low resolution, 1080p won't exist for it. Not sure which to pick? Our <a href="/blog/pinterest-video-quality-guide.html">quality guide</a> breaks down what each one is good for.</div>
       </details>
       <details>
         <summary>Do I need an account or a login?</summary>
-        <div class="a">No sign-up, no email, no verification code, no Pinterest login. Paste a URL, click Get Video, download. That's the whole process.</div>
+        <div class="a">No sign-up, no email, no verification code, no Pinterest login. Paste a URL, click Get Video, download.</div>
       </details>
       <details>
         <summary>Does it work on iPhone and Android?</summary>
-        <div class="a">Yes — iPhone (Safari), Android (Chrome), iPad, Mac and Windows. If it has a browser, KlickPint works. Saving to your camera roll or gallery works a little differently on each — see our <a href="/blog/how-to-download-pinterest-videos-iphone.html">iPhone guide</a> or <a href="/blog/how-to-download-pinterest-videos-android.html">Android guide</a> for the exact steps.</div>
+        <div class="a">Yes: iPhone (Safari), Android (Chrome), iPad, Mac and Windows. If it has a browser, KlickPint works. Saving to your camera roll or gallery works a little differently on each, so see our <a href="/blog/how-to-download-pinterest-videos-iphone.html">iPhone guide</a> or <a href="/blog/how-to-download-pinterest-videos-android.html">Android guide</a> for the exact steps.</div>
       </details>
       <details>
         <summary>Will my video have a watermark?</summary>
-        <div class="a">Never from us. KlickPint hands you the original file from Pinterest's servers, untouched. If the creator burned a watermark into the video itself, that stays — we don't re-encode anything.</div>
+        <div class="a">Never from us. KlickPint hands you the original file from Pinterest's servers, untouched. If the creator burned a watermark into the video itself, that stays. We don't re-encode anything.</div>
       </details>
       <details>
         <summary>Can I download private pins?</summary>
@@ -464,7 +464,7 @@
       </details>
       <details>
         <summary>Is downloading Pinterest videos legal?</summary>
-        <div class="a">Downloading for personal, offline viewing is generally fine. Re-uploading someone else's video, or using it commercially without permission, is not. The copyright stays with whoever made it — see our <a href="/blog/is-downloading-pinterest-videos-legal.html">full legal breakdown</a> for the details.</div>
+        <div class="a">Downloading for personal, offline viewing is generally fine. Re-uploading someone else's video, or using it commercially without permission, is not. The copyright stays with whoever made it. See our <a href="/blog/is-downloading-pinterest-videos-legal.html">full legal breakdown</a> for the details.</div>
       </details>
     </div>
   </div>
@@ -476,29 +476,29 @@
     <div class="editorial">
       <h2>Why KlickPint is the Pinterest downloader you were looking for</h2>
 
-      <p>If you've spent any time on Pinterest you know the feeling — you find a recipe tutorial, a satisfying craft clip, or a short film that genuinely stops you mid-scroll, and then you realise there's no download button. Pinterest doesn't offer one for most content. That gap is exactly what KlickPint fills.</p>
+      <p>If you've spent any time on Pinterest you know the feeling: you find a recipe tutorial, a satisfying craft clip, or a short film that stops you mid-scroll, and then you realise there's no download button. Pinterest doesn't offer one for most content. That gap is exactly what KlickPint fills.</p>
 
       <p>We built it to be the tool we wanted to exist: simple, quick, and free without strings. Paste a URL, get your video. No multi-step account setup, no daily caps, no quality hidden behind a paywall.</p>
 
-      <h3>What actually happens when you paste a link</h3>
-      <p>KlickPint's server asks Pinterest's own API for that pin's video data — the same data Pinterest uses to play the clip in your browser. We read the list of available qualities and show it to you. When you pick one, the file streams from Pinterest's CDN to your device — we never save the video itself. We do keep a lightweight record of the request (pin ID, timestamp, IP, whether it succeeded) for 30 days to catch abuse and debug Pinterest blocking us; full details are in our <a href="/privacy.html">Privacy Policy</a>.</p>
+      <h3>What happens when you paste a link</h3>
+      <p>KlickPint's server asks Pinterest's own API for that pin's video data, the same data Pinterest uses to play the clip in your browser. We read the list of available qualities and show it to you. When you pick one, the file streams from Pinterest's CDN to your device, and we never save the video itself. We do keep a lightweight record of the request (pin ID, timestamp, IP, whether it succeeded) for 30 days to catch abuse and debug Pinterest blocking us; full details are in our <a href="/privacy.html">Privacy Policy</a>.</p>
 
       <h3>Every Pinterest URL format works</h3>
       <ul>
-        <li>Standard pin URLs — <code>pinterest.com/pin/123456789/</code></li>
-        <li>Short links — <code>pin.it/AbCdEf</code></li>
-        <li>Regional domains — <code>pinterest.co.uk</code>, <code>pinterest.de</code>, <code>in.pinterest.com</code></li>
+        <li>Standard pin URLs: <code>pinterest.com/pin/123456789/</code></li>
+        <li>Short links: <code>pin.it/AbCdEf</code></li>
+        <li>Regional domains: <code>pinterest.co.uk</code>, <code>pinterest.de</code>, <code>in.pinterest.com</code></li>
         <li>Share links copied straight out of the mobile app</li>
       </ul>
 
-      <h3>No tracking, no ads, no data collection</h3>
-      <p>Most free tools are free because they monetise you — through ads, data collection, or selling usage patterns. KlickPint doesn't. There are no ad scripts and no ad trackers on this page — we use Google Analytics to understand traffic, and keep a minimal, time-limited request log for abuse prevention (both are detailed in our <a href="/privacy.html">Privacy Policy</a>) — but nothing is sold, and no video files are ever saved.</p>
+      <h3>How KlickPint pays for itself</h3>
+      <p>KlickPint is free to use and is supported by Google AdSense advertising, which sets its own cookies. We also use Google Analytics to understand traffic, and keep a minimal, time-limited request log for abuse prevention. All of it is detailed in our <a href="/privacy.html">Privacy Policy</a>, along with how to opt out. We never sell your data, and no video files are ever saved.</p>
 
       <h3>How KlickPint compares</h3>
-      <p>A lot of similar tools cap free users at 480p or 720p, then show a paywall for 1080p. Others bury the download button under pop-ups that take longer to close than the download takes to finish. KlickPint gives you the highest quality available with no ads and no gates — the same on day one as a year from now.</p>
+      <p>A lot of similar tools cap free users at 480p or 720p, then show a paywall for 1080p. Others bury the download button under pop-ups that take longer to close than the download takes to finish. KlickPint gives you the highest quality available with no paywall and no gates, today and a year from now.</p>
 
       <h3>A note on copyright</h3>
-      <p>KlickPint is a tool for saving content you have the right to save — your own pins, or clips you're keeping for personal offline viewing. Creators own their work. Don't re-upload it, don't monetise it, and don't strip credit. If you're a rights holder and something needs to come down, our <a href="/dmca.html">DMCA page</a> explains exactly how to reach us.</p>
+      <p>KlickPint is a tool for saving content you have the right to save: your own pins, or clips you're keeping for personal offline viewing. Creators own their work. Don't re-upload it, don't monetise it, and don't strip credit. If you're a rights holder and something needs to come down, our <a href="/dmca.html">DMCA page</a> explains exactly how to reach us.</p>
     </div>
   </div>
 </section>
@@ -508,7 +508,7 @@
   <div class="wrap">
     <div class="cta">
       <h2>Got a link ready?</h2>
-      <p>Paste it and the video is yours in seconds. No account, no cost, no catch.</p>
+      <p>Paste it and the video is yours in seconds. No account and no cost.</p>
       <a class="btn btn-lg" href="#tool">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M4 21h16"/></svg>
         Download a Pinterest video
@@ -553,13 +553,15 @@
         <a href="/privacy.html">Privacy Policy</a>
         <a href="/terms.html">Terms of Use</a>
         <a href="/dmca.html">DMCA</a>
-        <a href="mailto:support@klickpint.online">Contact</a>
+        <a href="/about.html">About Us</a>
+        <a href="/disclaimer.html">Disclaimer</a>
+        <a href="/contact.html">Contact Us</a>
       </div>
     </div>
 
     <div class="footer-bar">
       <span>© <span data-year>2025</span> KlickPint · klickpint.online</span>
-      <span>Not affiliated with Pinterest. Personal use only — please respect copyright.</span>
+      <span>Not affiliated with Pinterest. Personal use only. Please respect copyright.</span>
     </div>
   </div>
 </footer>
