@@ -102,7 +102,7 @@ fetchBtn.addEventListener('click', async () => {
     }
 
     render(json.data);
-    toast('Video ready', 'ok');
+    toast('Ready to download', 'ok');
   } catch (err) {
     if (err.name === 'AbortError') showAlert('Request timed out. Please try again.');
     else showAlert('Cannot reach the server. Check your connection and try again.');
