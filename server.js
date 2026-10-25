@@ -272,6 +272,13 @@ app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders(res, filePath) {
     if (filePath.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-cache');
+    } else if (/\.(woff2|png|jpe?g|webp|svg|ico)$/i.test(filePath)) {
+      // Fonts and images never change in place; a replaced file gets a new name.
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if ((filePath.endsWith('.js') || filePath.endsWith('.css')) && res.req?.query?.v) {
+      // Versioned URL (?v=…): safe to cache for a week. Run `npm run bump-assets`
+      // after editing any CSS/JS so every page points at a new version.
+      res.setHeader('Cache-Control', 'public, max-age=604800');
     } else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
       // Short cache + ETag revalidation, NOT the 1-day default below.
       // JS/CSS carry bug fixes — a 24h max-age means a returning visitor's
@@ -946,7 +953,20 @@ function safeFilename(filename) {
   return fn || 'klickpint.mp4';
 }
 
-app.get('/api/download', async (req, res) => {
+// Streaming through this server costs real bandwidth, so ?proxy=1 gets its own
+// per-IP cap. Plain redirects (no proxy) hand off to the CDN and stay uncapped.
+const proxyLimiter = rateLimit({
+  windowMs : 60 * 60 * 1000,
+  max      : 40,
+  standardHeaders: true,
+  legacyHeaders  : false,
+  handler  : (req, res) => res.status(429).json({
+    code : 'RATE_LIMIT',
+    error: 'Download limit reached. Please try again later.',
+  }),
+});
+
+app.get('/api/download', (req, res, next) => req.query.proxy === '1' ? proxyLimiter(req, res, next) : next(), async (req, res) => {
   const { url, filename, proxy, pinId, label } = req.query;
   if (!url || typeof url !== 'string')
     return res.status(400).json({ error: 'URL required' });
@@ -993,14 +1013,11 @@ app.get('/api/download', async (req, res) => {
 });
 
 // ── Health + Stats ─────────────────────────────────────────────────────────
+// Public, so it reveals only what an uptime monitor needs. Memory, pid and
+// cache size live in the admin summary behind the login.
 app.get('/api/health', (_, res) => res.json({
-  status       : 'OK',
-  uptime       : Math.round(process.uptime()),
-  pinterestOk  : pinterestOk(),
-  cooldownLeft : Math.max(0, Math.round((pinterestHealth.cooldownUntil - Date.now()) / 1000)),
-  cache        : { size: videoCache.size, maxSize: CACHE_MAX },
-  memory       : `${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`,
-  pid          : process.pid,
+  status     : 'OK',
+  pinterestOk: pinterestOk(),
 }));
 
 app.get('/api/stats', (req, res) => {
@@ -1150,10 +1167,14 @@ app.use((err, _req, res, _next) => {
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────
-const server = app.listen(PORT, () => {
+// Bind to loopback only: nginx is the sole public entry point, so port 3020
+// must not answer on the server's public address even if the firewall slips.
+// Set HOST=0.0.0.0 to override (e.g. inside a container).
+const HOST   = process.env.HOST || '127.0.0.1';
+const server = app.listen(PORT, HOST, () => {
   console.log(`
 ╔════════════════════════════════════════╗
-║   🚀 KlickPint running on port ${PORT}   ║
+║   🚀 KlickPint running on ${HOST}:${PORT}   ║
 ║   Anti-ban: UA rotation ON             ║
 ║   Abuse protection: ON                 ║
 ║   Retry logic: ON (3 attempts)         ║

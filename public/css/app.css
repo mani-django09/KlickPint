@@ -155,7 +155,7 @@ strong{color:var(--text);font-weight:650}
 .nav .wrap{max-width:none}
 .nav-in{display:flex;align-items:center;gap:16px;height:var(--nav-h)}
 
-.brand{display:flex;align-items:center;gap:11px;flex-shrink:0;margin-right:auto}
+.brand{display:flex;align-items:center;gap:11px;flex-shrink:0;margin-right:auto;min-height:44px}
 .brand-mark{
   width:38px;height:38px;border-radius:12px;flex-shrink:0;
   background:linear-gradient(145deg,var(--brand-hi),var(--brand));
@@ -176,7 +176,7 @@ strong{color:var(--text);font-weight:650}
 .nav-actions{display:flex;align-items:center;gap:8px}
 
 .icon-btn{
-  width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
   border:1px solid var(--line);background:var(--elev);color:var(--text-2);
   transition:.18s var(--ease);
 }
@@ -261,7 +261,7 @@ strong{color:var(--text);font-weight:650}
   color:var(--text);margin-bottom:16px;
 }
 .footer-col a{
-  display:block;font-size:.875rem;color:var(--text-2);margin-bottom:11px;
+  display:block;font-size:.875rem;color:var(--text-2);padding:11px 0;
   transition:color .18s,transform .18s;width:fit-content;
 }
 .footer-col a:hover{color:var(--brand);transform:translateX(3px)}

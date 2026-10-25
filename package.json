@@ -10,7 +10,8 @@
     "pm2:stop": "pm2 stop klickpint",
     "pm2:restart": "pm2 restart klickpint",
     "pm2:logs": "pm2 logs klickpint",
-    "pm2:status": "pm2 status"
+    "pm2:status": "pm2 status",
+    "bump-assets": "node scripts/bump-assets.js"
   },
   "engines": {
     "node": ">=18.0.0"

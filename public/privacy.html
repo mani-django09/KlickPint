@@ -7,9 +7,20 @@
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+  // Consent Mode: in the EEA, UK and Switzerland nothing is stored or measured
+  // until the visitor answers Google's consent message (Funding Choices).
+  gtag("consent", "default", {
+    ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", analytics_storage: "denied",
+    region: ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IS","IE","IT","LV","LI","LT","LU","MT","NL","NO","PL","PT","RO","SK","SI","ES","SE","GB","CH"],
+    wait_for_update: 500
+  });
   gtag("js", new Date());
   gtag("config", "G-SBH9V62HZQ");
 </script>
+<!-- Google Funding Choices: consent message for EEA/UK/CH visitors, configured in AdSense > Privacy & messaging -->
+<script async src="https://fundingchoicesmessages.google.com/i/pub-6913093595582462?ers=1"></script>
+<script>(function(){function signalGooglefcPresent(){if(!window.frames['googlefcPresent']){if(document.body){var i=document.createElement('iframe');i.style='width:0;height:0;border:none;z-index:-1000;left:-1000px;top:-1000px;display:none';i.name='googlefcPresent';document.body.appendChild(i);}else{setTimeout(signalGooglefcPresent,0);}}}signalGooglefcPresent();})();</script>
+
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,8 +52,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/app.css">
-<link rel="stylesheet" href="/css/page.css">
+<link rel="stylesheet" href="/css/app.css?v=b7e33556">
+<link rel="stylesheet" href="/css/page.css?v=b7e33556">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -81,7 +92,7 @@
 <h1 class="page-title">Privacy Policy</h1>
   <div class="page-meta">
     <span>Effective: May 27, 2025</span>
-    <span>Last updated: October 18, 2026</span>
+    <span>Last updated: October 25, 2026</span>
     <span>Domain: klickpint.online</span>
   </div>
   <div class="info-box">KlickPint is committed to protecting your privacy. We collect the minimum data needed to operate the service and prevent abuse, we don't sell or share it with third parties, and we never store your downloaded video files.</div>
@@ -111,6 +122,7 @@
 
   <h2>3. Cookies</h2>
   <p>KlickPint sets Google Analytics cookies (see section 4) to measure site usage. The site also shows ads served by Google AdSense, and Google and its advertising partners may set their own cookies, including cookies that recognise your browser across other websites, to show and measure ads (see the Advertising section below). KlickPint itself does not run its own retargeting pixels or sell data to anyone.</p>
+  <p><strong>Consent in the EEA, UK and Switzerland.</strong> If you visit from one of these regions, Google's consent message asks you to accept or reject cookies for ads and analytics. Until you answer, KlickPint does not set analytics or advertising cookies. To change your choice later, clear this site's cookies and the message appears again.</p>
 
   <h2>4. Third-Party Services</h2>
   <p>KlickPint uses the following third-party services:</p>
@@ -198,6 +210,6 @@
   </div>
 </footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/app.js" defer></script>
+<script src="/js/app.js?v=b7e33556" defer></script>
 </body>
 </html>

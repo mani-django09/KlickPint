@@ -7,9 +7,20 @@
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+  // Consent Mode: in the EEA, UK and Switzerland nothing is stored or measured
+  // until the visitor answers Google's consent message (Funding Choices).
+  gtag("consent", "default", {
+    ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", analytics_storage: "denied",
+    region: ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IS","IE","IT","LV","LI","LT","LU","MT","NL","NO","PL","PT","RO","SK","SI","ES","SE","GB","CH"],
+    wait_for_update: 500
+  });
   gtag("js", new Date());
   gtag("config", "G-SBH9V62HZQ");
 </script>
+<!-- Google Funding Choices: consent message for EEA/UK/CH visitors, configured in AdSense > Privacy & messaging -->
+<script async src="https://fundingchoicesmessages.google.com/i/pub-6913093595582462?ers=1"></script>
+<script>(function(){function signalGooglefcPresent(){if(!window.frames['googlefcPresent']){if(document.body){var i=document.createElement('iframe');i.style='width:0;height:0;border:none;z-index:-1000;left:-1000px;top:-1000px;display:none';i.name='googlefcPresent';document.body.appendChild(i);}else{setTimeout(signalGooglefcPresent,0);}}}signalGooglefcPresent();})();</script>
+
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,8 +52,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/app.css">
-<link rel="stylesheet" href="/css/page.css">
+<link rel="stylesheet" href="/css/app.css?v=b7e33556">
+<link rel="stylesheet" href="/css/page.css?v=b7e33556">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -217,6 +228,6 @@
   </div>
 </footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/app.js" defer></script>
+<script src="/js/app.js?v=b7e33556" defer></script>
 </body>
 </html>
