@@ -1136,6 +1136,168 @@ app.get('/api/admin/activity', requireAdmin, (req, res) => {
   res.json({ total: rows.length, entries: slice });
 });
 
+// ══════════════════════════════════════════════════════════════════
+//  CONTACT FORM
+//  Every message is appended to data/contact.jsonl (so nothing is lost if
+//  email is not set up or fails) and, when SMTP_USER/SMTP_PASS are set,
+//  emailed to CONTACT_TO with Reply-To set to the visitor.
+//
+//  Cloudflare Email Routing only RECEIVES mail for support@klickpint.online,
+//  it cannot send. Sending goes through an SMTP account, normally the Gmail
+//  that the routing forwards to, using a Gmail app password.
+// ══════════════════════════════════════════════════════════════════
+const CONTACT_LOG_PATH = path.join(DATA_DIR, 'contact.jsonl');
+const CONTACT_RETENTION_MS = 365 * 24 * 60 * 60 * 1000;   // privacy policy: 12 months
+const CONTACT_TOPICS = {
+  help     : 'Help with a download',
+  copyright: 'Copyright / DMCA notice',
+  privacy  : 'Privacy request',
+  business : 'Business, ads or partnership',
+  other    : 'Something else',
+};
+const SMTP_USER  = process.env.SMTP_USER || '';
+// Default to the SMTP mailbox itself: Gmail hides mail that it sent to an
+// address which forwards straight back to the same Gmail account.
+const CONTACT_TO = process.env.CONTACT_TO || SMTP_USER;
+
+let mailer = null;
+if (SMTP_USER && process.env.SMTP_PASS) {
+  try {
+    const port = Number(process.env.SMTP_PORT) || 465;
+    mailer = require('nodemailer').createTransport({
+      host  : process.env.SMTP_HOST || 'smtp.gmail.com',
+      port,
+      secure: port === 465,
+      auth  : { user: SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+  } catch (e) {
+    console.error('[Contact] nodemailer unavailable:', e.message);
+  }
+} else {
+  console.warn('[Contact] SMTP_USER/SMTP_PASS not set: contact messages are saved and shown in the admin panel, but not emailed.');
+}
+
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max     : 5,
+  standardHeaders: true,
+  legacyHeaders  : false,
+  handler : (req, res) => res.status(429).json({
+    code : 'RATE_LIMIT',
+    error: 'Too many messages from this connection. Please try again in an hour, or email support@klickpint.online.',
+  }),
+});
+
+// Single-line fields: no newlines (header injection) and no control characters.
+const oneLine = (v, max) => String(v == null ? '' : v)
+  .replace(/[\r\n\t]+/g, ' ').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max);
+const EMAIL_RE = /^[^\s@<>()",;:]+@[^\s@<>()",;:]+\.[a-z]{2,}$/i;
+
+function readContactLog() {
+  let raw = '';
+  try { raw = fs.readFileSync(CONTACT_LOG_PATH, 'utf8'); } catch (_) { return []; }
+  const cutoff = Date.now() - CONTACT_RETENTION_MS;
+  const rows = [];
+  for (const line of raw.split('\n')) {
+    if (!line) continue;
+    try { const r = JSON.parse(line); if (Date.parse(r.ts) >= cutoff) rows.push(r); } catch (_) {}
+  }
+  return rows;
+}
+function writeContactLog(rows) {
+  const tmp = CONTACT_LOG_PATH + '.tmp';
+  fs.writeFileSync(tmp, rows.map(r => JSON.stringify(r)).join('\n') + (rows.length ? '\n' : ''));
+  fs.renameSync(tmp, CONTACT_LOG_PATH);
+}
+// Actually delete messages past the retention window (the privacy policy
+// promises 12 months), at startup and then once a day.
+function purgeOldContacts() {
+  try {
+    if (!fs.existsSync(CONTACT_LOG_PATH)) return;
+    const lines = fs.readFileSync(CONTACT_LOG_PATH, 'utf8').split('\n').filter(Boolean).length;
+    const keep = readContactLog();
+    if (keep.length < lines) writeContactLog(keep);
+  } catch (e) { console.error('[Contact] purge failed:', e.message); }
+}
+purgeOldContacts();
+setInterval(purgeOldContacts, 24 * 60 * 60 * 1000).unref();
+
+app.post('/api/contact', contactLimiter, async (req, res) => {
+  const b = req.body || {};
+
+  // Bots fill the hidden "website" field and submit instantly. Answer as if
+  // it worked so they don't learn to adapt, but store and send nothing.
+  const elapsed = Date.now() - Number(b.t || 0);
+  if (b.website || !(elapsed > 3000 && elapsed < 24 * 60 * 60 * 1000)) {
+    return res.json({ success: true });
+  }
+
+  const name    = oneLine(b.name, 80);
+  const email   = oneLine(b.email, 160);
+  const topic   = Object.prototype.hasOwnProperty.call(CONTACT_TOPICS, b.topic) ? b.topic : 'other';
+  const pin     = oneLine(b.pin, 300);
+  const message = String(b.message == null ? '' : b.message)
+    .replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').trim().slice(0, 3000);
+
+  if (!EMAIL_RE.test(email))
+    return res.status(400).json({ code: 'BAD_EMAIL', error: 'Please enter a valid email address so we can reply.' });
+  if (message.length < 10)
+    return res.status(400).json({ code: 'SHORT_MESSAGE', error: 'Please write a little more so we can help (at least 10 characters).' });
+
+  const entry = {
+    id: crypto.randomUUID(), ts: new Date().toISOString(),
+    name, email, topic, pin, message, ip: req.ip, emailed: false,
+  };
+
+  if (mailer && CONTACT_TO) {
+    try {
+      await mailer.sendMail({
+        from   : `"KlickPint contact form" <${SMTP_USER}>`,
+        to     : CONTACT_TO,
+        replyTo: name ? { name, address: email } : email,
+        subject: `[KlickPint] ${CONTACT_TOPICS[topic]}${name ? ' from ' + name : ''}`,
+        text   : [
+          `Topic: ${CONTACT_TOPICS[topic]}`,
+          `Name:  ${name || '(not given)'}`,
+          `Email: ${email}`,
+          pin ? `Pin:   ${pin}` : null,
+          `Sent:  ${entry.ts}  (IP ${entry.ip})`,
+          '',
+          message,
+          '',
+          '-- ',
+          'Reply to this email to answer the visitor directly.',
+        ].filter(l => l !== null).join('\n'),
+      });
+      entry.emailed = true;
+    } catch (e) {
+      console.error('[Contact] email failed:', e.message);
+    }
+  }
+
+  try {
+    await fs.promises.appendFile(CONTACT_LOG_PATH, JSON.stringify(entry) + '\n');
+  } catch (e) {
+    console.error('[Contact] save failed:', e.message);
+    if (!entry.emailed)
+      return res.status(500).json({ code: 'SAVE_FAILED', error: 'Your message could not be sent. Please email support@klickpint.online instead.' });
+  }
+  res.json({ success: true });
+});
+
+app.get('/api/admin/messages', requireAdmin, (req, res) => {
+  const rows = readContactLog();
+  res.json({ total: rows.length, emailConfigured: !!(mailer && CONTACT_TO), messages: rows.slice(-200).reverse() });
+});
+
+app.delete('/api/admin/messages/:id', requireAdmin, (req, res) => {
+  const rows = readContactLog();
+  const keep = rows.filter(r => r.id !== req.params.id);
+  if (keep.length === rows.length) return res.status(404).json({ error: 'Message not found.' });
+  try { writeContactLog(keep); } catch (e) { return res.status(500).json({ error: 'Could not delete: ' + e.message }); }
+  res.json({ success: true });
+});
+
 // Browsers ask for /favicon.ico unprompted; point them at the SVG instead of
 // letting the request fall through and download a full 404 HTML page.
 app.get('/favicon.ico', (_, res) => res.redirect(301, '/favicon.svg'));

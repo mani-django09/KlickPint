@@ -142,9 +142,55 @@ function rowHtml(e) {
   </tr>`;
 }
 
+/* ── Contact messages ──────────────────────────────────────────────────── */
+const TOPICS = {
+  help: 'Download help', copyright: 'Copyright', privacy: 'Privacy', business: 'Business', other: 'Other',
+};
+
+async function loadMessages() {
+  const r = await fetch('/api/admin/messages');
+  if (r.status === 401) return showLogin();
+  const { total, emailConfigured, messages } = await r.json();
+  $('msgCount').textContent = total ? String(total) : '';
+  $('msgWarn').classList.toggle('show', !emailConfigured);
+  $('msgEmpty').style.display = messages.length ? 'none' : 'block';
+  $('msgList').innerHTML = messages.map((m) => {
+    const time = new Date(m.ts).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const subject = encodeURIComponent('Re: your message to KlickPint');
+    const quoted  = encodeURIComponent('\n\n---\nYou wrote:\n' + m.message);
+    return `<article class="msg" data-id="${esc(m.id)}">
+      <div class="msg-meta">
+        <span class="msg-topic">${esc(TOPICS[m.topic] || m.topic)}</span>
+        <strong>${esc(m.name || 'No name')}</strong>
+        <span>${esc(m.email)}</span>
+        <span>· ${esc(time)}</span>
+        <span>· ${m.emailed ? 'emailed' : 'not emailed'}</span>
+        <span>· ${esc(m.ip || '')}</span>
+      </div>
+      ${m.pin ? `<div class="msg-pin">Pin: <a href="${esc(/^https?:\/\//i.test(m.pin) ? m.pin : '#')}" target="_blank" rel="noopener noreferrer">${esc(m.pin)}</a></div>` : ''}
+      <div class="msg-body">${esc(m.message)}</div>
+      <div class="msg-actions">
+        <a href="mailto:${esc(m.email)}?subject=${subject}&body=${quoted}">Reply by email</a>
+        <button type="button" data-del="${esc(m.id)}">Delete</button>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+$('msgList').addEventListener('click', async (e) => {
+  const id = e.target.getAttribute && e.target.getAttribute('data-del');
+  if (!id) return;
+  if (!confirm('Delete this message permanently?')) return;
+  const r = await fetch('/api/admin/messages/' + encodeURIComponent(id), { method: 'DELETE' });
+  if (r.status === 401) return showLogin();
+  if (!r.ok) return toast('Could not delete the message', 'err');
+  toast('Message deleted', 'ok');
+  loadMessages();
+});
+
 async function loadAll() {
   try {
-    await Promise.all([loadSummary(), loadActivity()]);
+    await Promise.all([loadSummary(), loadActivity(), loadMessages()]);
   } catch (_) {
     toast('Failed to load admin data', 'err');
   }

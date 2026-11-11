@@ -24,14 +24,14 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Contact KlickPint – Support, Copyright and Privacy</title>
-<meta name="description" content="How to reach KlickPint for help with a download, a copyright notice, a privacy request or a correction. We reply within three business days.">
+<title>Contact Us – KlickPint Support</title>
+<meta name="description" content="Contact KlickPint through the form or at support@klickpint.online for help with a download, a copyright notice or a privacy request. One person reads every message.">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="canonical" href="https://klickpint.online/contact.html">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Contact KlickPint – Support, Copyright and Privacy">
-<meta property="og:description" content="How to reach KlickPint for help with a download, a copyright notice, a privacy request or a correction. We reply within three business days.">
+<meta property="og:title" content="Contact Us – KlickPint Support">
+<meta property="og:description" content="Contact KlickPint through the form or at support@klickpint.online for help with a download, a copyright notice or a privacy request. One person reads every message.">
 <meta property="og:url" content="https://klickpint.online/contact.html">
 <meta property="og:site_name" content="KlickPint">
 <meta property="og:image" content="https://klickpint.online/og.jpg">
@@ -40,8 +40,8 @@
 <meta property="og:image:alt" content="KlickPint: free Pinterest video downloader">
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Contact KlickPint – Support, Copyright and Privacy">
-<meta name="twitter:description" content="How to reach KlickPint for help with a download, a copyright notice, a privacy request or a correction. We reply within three business days.">
+<meta name="twitter:title" content="Contact Us – KlickPint Support">
+<meta name="twitter:description" content="Contact KlickPint through the form or at support@klickpint.online for help with a download, a copyright notice or a privacy request. One person reads every message.">
 <meta name="twitter:image" content="https://klickpint.online/og.jpg">
 <meta name="twitter:image:alt" content="KlickPint: free Pinterest video downloader">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -52,8 +52,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/app.css?v=1ef7951b">
-<link rel="stylesheet" href="/css/page.css?v=1ef7951b">
+<link rel="stylesheet" href="/css/app.css?v=5bf18694">
+<link rel="stylesheet" href="/css/page.css?v=5bf18694">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -90,39 +90,101 @@
   </div>
 </header>
 <main id="content">
-<article class="prose">
-<h1 class="page-title">Contact Us</h1>
-  <div class="page-meta">
-    <span>Last updated: October 18, 2026</span>
+<div class="contact-wrap">
+  <div class="contact-head">
+    <h1 class="page-title">Contact us</h1>
+    <p>Questions, a download that won't work, a copyright notice or a privacy request: send it here. One person reads every message and usually replies within three business days.</p>
   </div>
-  <div class="info-box">Email is the only support channel. A real person replies, usually within three business days. Please never send a password, a login code or payment details.</div>
 
-  <h2>Who to write to</h2>
-  <table>
-    <thead><tr><th>Topic</th><th>Address</th><th>Use it for</th></tr></thead>
-    <tbody>
-      <tr><td>Help with a download</td><td><a href="mailto:support@klickpint.online">support@klickpint.online</a></td><td>A link will not load, a file will not save, or the result looks wrong.</td></tr>
-      <tr><td>Copyright notice</td><td><a href="mailto:dmca@klickpint.online">dmca@klickpint.online</a></td><td>You own a work and want us to stop processing a pin. Read the <a href="/dmca.html">DMCA page</a> first.</td></tr>
-      <tr><td>Privacy request</td><td><a href="mailto:privacy@klickpint.online">privacy@klickpint.online</a></td><td>Access to or deletion of data we hold about you.</td></tr>
-      <tr><td>Legal and business</td><td><a href="mailto:legal@klickpint.online">legal@klickpint.online</a></td><td>Other legal questions, partnerships, or a bad ad you want to report.</td></tr>
-    </tbody>
-  </table>
+  <div class="contact-grid">
+    <section class="contact-card" aria-labelledby="formTitle">
+      <h2 id="formTitle" class="sr-only" style="position:absolute;left:-9999px">Send us a message</h2>
 
-  <h2>Getting faster help with a download</h2>
-  <p>The FAQ on the <a href="/#faq">home page</a> and the guide on <a href="/blog/pinterest-video-download-not-working.html">what to do when a download is not working</a> cover the usual causes. If you are still stuck, include:</p>
-  <ul>
-    <li>the full Pinterest link you pasted (the pin must be public);</li>
-    <li>your device and browser, for example &ldquo;iPhone, Safari&rdquo;;</li>
-    <li>the exact message the tool showed, or a screenshot of it;</li>
-    <li>roughly when it happened, so we can find it in our logs.</li>
-  </ul>
+      <form id="contactForm" novalidate>
+        <div class="cf-status" id="cfStatus" role="alert"></div>
 
-  <h2>What we cannot help with</h2>
-  <p>We are not Pinterest, so we cannot restore accounts, remove pins from Pinterest or recover deleted content. To get a pin taken off Pinterest, report it to Pinterest directly. We also cannot save private pins or secret boards, because the tool only works with public ones.</p>
+        <div class="cf-row">
+          <div class="cf-field">
+            <label for="cfName">Name <span class="opt">(optional)</span></label>
+            <input id="cfName" name="name" type="text" maxlength="80" autocomplete="name">
+          </div>
+          <div class="cf-field">
+            <label for="cfEmail">Email</label>
+            <input id="cfEmail" name="email" type="email" maxlength="160" autocomplete="email" required>
+          </div>
+        </div>
 
-  <h2>Reporting an ad</h2>
-  <p>Ads on this site are served by Google. If an ad looks misleading, inappropriate or like a fake download button, email <a href="mailto:legal@klickpint.online">legal@klickpint.online</a> with a screenshot and the page it appeared on, and we will report it.</p>
-</article>
+        <div class="cf-field">
+          <label for="cfTopic">What is it about?</label>
+          <select id="cfTopic" name="topic">
+            <option value="help">Help with a download</option>
+            <option value="copyright">Copyright / DMCA notice</option>
+            <option value="privacy">Privacy request</option>
+            <option value="business">Business, ads or partnership</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+
+        <div class="cf-field" id="cfPinField">
+          <label for="cfPin">Pin link <span class="opt">(if it's about a specific pin)</span></label>
+          <input id="cfPin" name="pin" type="url" maxlength="300" inputmode="url" placeholder="https://pin.it/… or https://www.pinterest.com/pin/…">
+        </div>
+
+        <div class="cf-field">
+          <label for="cfMessage">Message</label>
+          <textarea id="cfMessage" name="message" maxlength="3000" required placeholder="What happened? Include your device and browser (for example iPhone, Safari) and the exact error message, if there was one."></textarea>
+          <div class="cf-help"><span>At least 10 characters.</span><span id="cfCount">0 / 3000</span></div>
+        </div>
+
+        <!-- Leave this empty. It's hidden from people and catches spam bots. -->
+        <div class="cf-hp" aria-hidden="true">
+          <label for="cfWebsite">Website</label>
+          <input id="cfWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <p class="cf-note">Please never send a password, a login code or payment details. We use what you send only to reply to you; see the <a href="/privacy.html">Privacy Policy</a>.</p>
+
+        <button class="btn btn-primary btn-lg btn-block" id="cfSubmit" type="submit">Send message</button>
+      </form>
+
+      <div class="cf-done" id="cfDone" role="status" aria-live="polite">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg></div>
+        <h2>Message sent</h2>
+        <p>Thanks. We'll reply to <strong id="cfDoneEmail"></strong>, usually within three business days. If you don't see it, check your spam folder.</p>
+      </div>
+    </section>
+
+    <aside class="contact-side">
+      <div class="side-box">
+        <h2>Prefer email?</h2>
+        <p>Write to us directly. It goes to the same inbox as the form.</p>
+        <a class="side-mail" href="mailto:support@klickpint.online">support@klickpint.online</a>
+      </div>
+
+      <div class="side-box">
+        <h2>Download not working?</h2>
+        <p>Most problems have a quick fix. Check these first:</p>
+        <ul>
+          <li><a href="/blog/pinterest-video-download-not-working.html">What each error message means</a></li>
+          <li><a href="/blog/how-to-download-pinterest-videos-iphone.html">Where files go on iPhone</a></li>
+          <li><a href="/blog/how-to-download-pinterest-videos-android.html">Where files go on Android</a></li>
+        </ul>
+        <p style="margin-top:8px">Still stuck? Send the pin link, your device and browser, and the exact message you saw.</p>
+      </div>
+
+      <div class="side-box">
+        <h2>Copyright notices</h2>
+        <p>If you own a video or image and want us to stop processing a pin, read the <a href="/dmca.html">DMCA page</a> for what to include, then choose "Copyright / DMCA notice" above.</p>
+      </div>
+
+      <div class="side-box">
+        <h2>What we can't help with</h2>
+        <p>We are not Pinterest. We can't restore Pinterest accounts, remove pins from Pinterest or recover deleted content; report those to Pinterest directly. We also can't save private pins or secret boards.</p>
+        <p style="margin-top:8px">Saw a misleading ad or a fake download button? Ads are served by Google. Send us a screenshot and the page it was on, and we'll report it.</p>
+      </div>
+    </aside>
+  </div>
+</div>
 </main>
 <footer class="footer">
   <div class="wrap">
@@ -164,6 +226,7 @@
   </div>
 </footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/app.js?v=1ef7951b" defer></script>
+<script src="/js/app.js?v=5bf18694" defer></script>
+<script src="/js/contact.js?v=5bf18694" defer></script>
 </body>
 </html>

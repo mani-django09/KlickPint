@@ -117,3 +117,50 @@
 }
 .figure.narrow img{max-width:340px;margin-inline:auto}
 .figure figcaption{margin-top:10px;font-size:.84rem;line-height:1.6;color:var(--text-3);text-align:center}
+
+/* ── Contact page ────────────────────────────────────────────────────── */
+.contact-wrap{max-width:1040px;margin-inline:auto;padding:clamp(40px,6vw,72px) 24px clamp(56px,7vw,88px)}
+.contact-head{max-width:640px;margin-bottom:32px}
+.contact-head p{color:var(--text-2);font-size:1.02rem;line-height:1.7;margin-top:10px}
+.contact-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px;align-items:start}
+@media(max-width:860px){.contact-grid{grid-template-columns:1fr}}
+
+.contact-card{
+  background:var(--elev);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:clamp(20px,3vw,32px);box-shadow:var(--sh-1);
+}
+.cf-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:560px){.cf-row{grid-template-columns:1fr}}
+.cf-field{display:flex;flex-direction:column;gap:7px;margin-bottom:18px;min-width:0}
+.cf-field label{font-size:.86rem;font-weight:650;color:var(--text)}
+.cf-field label .opt{font-weight:500;color:var(--text-3)}
+.cf-field input,.cf-field select,.cf-field textarea{
+  width:100%;font:inherit;font-size:.95rem;color:var(--text);
+  background:var(--bg-sunk);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:12px 14px;transition:border-color .15s,box-shadow .15s;
+}
+.cf-field textarea{min-height:150px;resize:vertical;line-height:1.6}
+.cf-field input:focus,.cf-field select:focus,.cf-field textarea:focus{
+  outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);
+}
+.cf-field [aria-invalid="true"]{border-color:var(--danger)}
+.cf-help{font-size:.78rem;color:var(--text-3);display:flex;justify-content:space-between;gap:12px}
+.cf-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.cf-note{font-size:.8rem;color:var(--text-3);line-height:1.6;margin:4px 0 18px}
+.cf-status{display:none;border-radius:var(--r-sm);padding:12px 14px;font-size:.9rem;margin-bottom:16px;
+  background:var(--danger-soft);border:1px solid var(--danger-line);color:var(--text)}
+.cf-status.show{display:block}
+.cf-done{display:none;text-align:center;padding:24px 8px}
+.cf-done.show{display:block}
+.cf-done .ico{width:56px;height:56px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;background:var(--ok-soft);color:var(--ok)}
+.cf-done .ico svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.cf-done h2{font-size:1.3rem;margin-bottom:8px}
+.cf-done p{color:var(--text-2);line-height:1.7}
+
+.contact-side{display:flex;flex-direction:column;gap:16px}
+.side-box{background:var(--elev);border:1px solid var(--line);border-radius:var(--r-lg);padding:20px}
+.side-box h2{font-size:1rem;margin-bottom:8px}
+.side-box p,.side-box li{font-size:.88rem;line-height:1.65;color:var(--text-2)}
+.side-box ul{padding-left:18px;margin:6px 0 0}
+.side-box li{margin:4px 0}
+.side-mail{display:inline-block;margin-top:6px;font-weight:700;font-size:.98rem;color:var(--brand);word-break:break-all}
