@@ -67,8 +67,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/app.css?v=4c398734">
-<link rel="stylesheet" href="/css/page.css?v=4c398734">
+<link rel="stylesheet" href="/css/app.css?v=e4f63688">
+<link rel="stylesheet" href="/css/page.css?v=e4f63688">
 <style>
 .blog-index{max-width:900px;margin:0 auto;padding:clamp(40px,6vw,72px) 24px clamp(56px,7vw,88px)}
 .blog-index .page-title{font-size:clamp(2rem,1.4rem + 2.4vw,2.9rem);margin-bottom:12px}
@@ -76,8 +76,10 @@
 .post-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
 .post-card{
   display:block;background:var(--elev);border:1px solid var(--line);border-radius:var(--r-lg);
-  padding:22px;text-decoration:none;transition:.2s var(--ease);
+  padding:0 0 22px;overflow:hidden;text-decoration:none;transition:.2s var(--ease);
 }
+.post-card .thumb{display:block;width:100%;height:auto;aspect-ratio:1200/630;object-fit:cover;background:var(--brand-soft);margin-bottom:18px}
+.post-card .tag,.post-card h2,.post-card p{margin-left:22px;margin-right:22px}
 .post-card:hover{border-color:var(--brand-line);transform:translateY(-3px);box-shadow:var(--sh-2);text-decoration:none}
 .post-card .tag{
   display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
@@ -126,36 +128,43 @@
 
     <div class="post-grid">
       <a class="post-card" href="/blog/pinterest-video-size-specs.html">
+        <img class="thumb" src="/blog/img/covers/pinterest-video-size-specs-sm.jpg" alt="" width="600" height="315" loading="lazy" decoding="async">
         <span class="tag">For creators</span>
         <h2>Pinterest Video Size and Specs: What Actually Matters</h2>
         <p>Aspect ratios, length limits, file size, and where to put text so a 9:16 video isn't cropped.</p>
       </a>
       <a class="post-card" href="/blog/save-pinterest-images-gifs-full-quality.html">
+        <img class="thumb" src="/blog/img/covers/save-pinterest-images-gifs-full-quality-sm.jpg" alt="" width="600" height="315" loading="lazy" decoding="async">
         <span class="tag">Tutorial</span>
         <h2>How to Save Pinterest Images and GIFs in Full Quality</h2>
         <p>Why saved pins look blurry, how Pinterest's image sizes work, and three ways to get the original.</p>
       </a>
       <a class="post-card" href="/blog/how-to-download-pinterest-videos-iphone.html">
+        <img class="thumb" src="/blog/img/covers/how-to-download-pinterest-videos-iphone-sm.jpg" alt="" width="600" height="315" loading="lazy" decoding="async">
         <span class="tag">Tutorial</span>
         <h2>How to Download Pinterest Videos on iPhone</h2>
         <p>The Safari + Files app flow, step by step, including how to get it into Camera Roll.</p>
       </a>
       <a class="post-card" href="/blog/how-to-download-pinterest-videos-android.html">
+        <img class="thumb" src="/blog/img/covers/how-to-download-pinterest-videos-android-sm.jpg" alt="" width="600" height="315" loading="lazy" decoding="async">
         <span class="tag">Tutorial</span>
         <h2>How to Download Pinterest Videos on Android</h2>
         <p>Chrome's download manager and your Gallery app, and where the file lands.</p>
       </a>
       <a class="post-card" href="/blog/pinterest-video-quality-guide.html">
+        <img class="thumb" src="/blog/img/covers/pinterest-video-quality-guide-sm.jpg" alt="" width="600" height="315" loading="lazy" decoding="async">
         <span class="tag">Guide</span>
         <h2>1080p vs 720p vs 480p vs 360p Explained</h2>
         <p>What the numbers mean, rough file sizes, and which one to pick for your situation.</p>
       </a>
       <a class="post-card" href="/blog/is-downloading-pinterest-videos-legal.html">
+        <img class="thumb" src="/blog/img/covers/is-downloading-pinterest-videos-legal-sm.jpg" alt="" width="600" height="315" loading="lazy" decoding="async">
         <span class="tag">Guide</span>
         <h2>Is It Legal to Download Pinterest Videos?</h2>
         <p>A plain-English look at copyright, personal use, and where the real risk is.</p>
       </a>
       <a class="post-card" href="/blog/pinterest-video-download-not-working.html">
+        <img class="thumb" src="/blog/img/covers/pinterest-video-download-not-working-sm.jpg" alt="" width="600" height="315" loading="lazy" decoding="async">
         <span class="tag">Troubleshooting</span>
         <h2>Pinterest Video Won't Download? 7 Fixes</h2>
         <p>The seven most common causes, and how to fix each one in under a minute.</p>
@@ -203,6 +212,6 @@
   </div>
 </footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/app.js?v=4c398734" defer></script>
+<script src="/js/app.js?v=e4f63688" defer></script>
 </body>
 </html>

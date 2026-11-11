@@ -49,7 +49,8 @@
   background:var(--brand-soft);color:var(--brand);
 }
 .step-content{flex:1;min-width:0;font-size:.94rem;line-height:1.7;color:var(--text-2)}
-.step-content strong{display:block;color:var(--text);font-weight:700;margin-bottom:3px;font-size:.97rem}
+.step-content > strong{display:block;color:var(--text);font-weight:700;margin-bottom:3px;font-size:.97rem}
+.step-content p strong{color:var(--text);font-weight:650}
 
 /* ── Inline check / cross ────────────────────────────────────────────── */
 .check{color:var(--ok);font-weight:800}

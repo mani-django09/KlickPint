@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 640" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+  <title>Pinterest video aspect ratios compared: 1:1, 4:5, 2:3 and 9:16</title>
+  <rect width="720" height="640" fill="#ffffff"/>
+
+  <!-- 2 x 2 grid, every frame 200 px tall so the shapes compare honestly -->
+  <!-- cell 1: 1:1 (200 x 200) -->
+  <rect x="80" y="40" width="200" height="200" rx="16" fill="#fff1f2" stroke="#e60023" stroke-width="4"/>
+  <text x="180" y="152" text-anchor="middle" font-size="44" font-weight="800" fill="#e60023">1:1</text>
+  <text x="180" y="280" text-anchor="middle" font-size="26" font-weight="700" fill="#18181b">Square</text>
+  <text x="180" y="310" text-anchor="middle" font-size="22" fill="#71717a">1080 × 1080</text>
+
+  <!-- cell 2: 4:5 (160 x 200) -->
+  <rect x="460" y="40" width="160" height="200" rx="16" fill="#fff1f2" stroke="#e60023" stroke-width="4"/>
+  <text x="540" y="152" text-anchor="middle" font-size="44" font-weight="800" fill="#e60023">4:5</text>
+  <text x="540" y="280" text-anchor="middle" font-size="26" font-weight="700" fill="#18181b">Portrait</text>
+  <text x="540" y="310" text-anchor="middle" font-size="22" fill="#71717a">1080 × 1350</text>
+
+  <!-- cell 3: 2:3 (133 x 200) highlighted -->
+  <rect x="113" y="360" width="133" height="200" rx="16" fill="#e60023"/>
+  <text x="180" y="472" text-anchor="middle" font-size="44" font-weight="800" fill="#ffffff">2:3</text>
+  <text x="180" y="600" text-anchor="middle" font-size="26" font-weight="700" fill="#18181b">Standard pin ★</text>
+  <text x="180" y="630" text-anchor="middle" font-size="22" fill="#71717a">1000 × 1500</text>
+
+  <!-- cell 4: 9:16 (112 x 200) -->
+  <rect x="484" y="360" width="112" height="200" rx="16" fill="#fff1f2" stroke="#e60023" stroke-width="4"/>
+  <text x="540" y="472" text-anchor="middle" font-size="40" font-weight="800" fill="#e60023">9:16</text>
+  <text x="540" y="600" text-anchor="middle" font-size="26" font-weight="700" fill="#18181b">Full vertical</text>
+  <text x="540" y="630" text-anchor="middle" font-size="22" fill="#71717a">1080 × 1920</text>
+</svg>
