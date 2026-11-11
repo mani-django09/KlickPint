@@ -11,7 +11,10 @@
 
   const sync = () => {
     const dark = root.getAttribute('data-theme') === 'dark';
-    btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    const pt = (root.lang || '').toLowerCase().startsWith('pt');
+    btn.setAttribute('aria-label', dark
+      ? (pt ? 'Mudar para o modo claro' : 'Switch to light mode')
+      : (pt ? 'Mudar para o modo escuro' : 'Switch to dark mode'));
     btn.setAttribute('aria-pressed', String(dark));
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', dark ? '#07070A' : '#FFFFFF');

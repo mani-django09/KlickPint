@@ -3,6 +3,68 @@
 
 const $ = (id) => document.getElementById(id);
 
+/* ── UI strings ────────────────────────────────────────────────────────────
+   The page's <html lang> picks the table. Server errors carry a `code`, which
+   is translated here; the server's English `error` text is the fallback. */
+const STRINGS = {
+  en: {
+    clipEmpty: 'Clipboard is empty', pasted: 'Link pasted', pasteKeys: 'Press Ctrl+V / ⌘V to paste',
+    fetching: 'Fetching video…', getVideo: 'Get Video',
+    needLink: 'Paste a Pinterest link first.',
+    notPin: "That doesn't look like a Pinterest link. Use a pinterest.com or pin.it URL.",
+    failed: (s) => `Request failed (${s}). Please try again.`,
+    ready: 'Ready to download', timeout: 'Request timed out. Please try again.',
+    offline: 'Cannot reach the server. Check your connection and try again.',
+    sub: { '1080p': 'Full HD', '720p': 'HD Ready', '480p': 'Standard', '360p': 'Data saver', HD: 'High quality' },
+    previewNA: 'Preview unavailable for this video', untitled: 'Pinterest Video', thumbAlt: 'thumbnail',
+    fullHd: 'Full HD available', hd: 'HD available', image: 'Image',
+    chooseQ: 'Choose a quality', chooseS: 'Choose a size',
+    options: (n) => n + (n === 1 ? ' option' : ' options'),
+    video: 'Video', animated: 'Animated',
+    dlLabel: (l, k) => `Download ${l} ${k}`, copyLabel: (l) => `Copy direct link for ${l}`, copyTitle: 'Copy direct link',
+    copied: 'Direct link copied', copyFail: 'Could not copy. Long-press the download button instead.',
+    saved: (l) => `${l} saved`, busy: 'A download is already running', noLink: 'Download link unavailable',
+    downloading: (l) => `Downloading ${l}…`, savedDevice: 'Saved to your device',
+    opening: 'Opening download…', startedBrowser: 'Download started in your browser',
+    errors: {},
+  },
+  pt: {
+    clipEmpty: 'A área de transferência está vazia', pasted: 'Link colado', pasteKeys: 'Pressione Ctrl+V / ⌘V para colar',
+    fetching: 'Buscando vídeo…', getVideo: 'Baixar Vídeo',
+    needLink: 'Cole um link do Pinterest primeiro.',
+    notPin: 'Isso não parece um link do Pinterest. Use um link pinterest.com ou pin.it.',
+    failed: (s) => `A solicitação falhou (${s}). Tente novamente.`,
+    ready: 'Pronto para baixar', timeout: 'O tempo da solicitação esgotou. Tente novamente.',
+    offline: 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.',
+    sub: { '1080p': 'Full HD', '720p': 'HD', '480p': 'Padrão', '360p': 'Economia de dados', HD: 'Alta qualidade' },
+    previewNA: 'Prévia indisponível para este vídeo', untitled: 'Vídeo do Pinterest', thumbAlt: 'miniatura',
+    fullHd: 'Full HD disponível', hd: 'HD disponível', image: 'Imagem',
+    chooseQ: 'Escolha a qualidade', chooseS: 'Escolha o tamanho',
+    options: (n) => n + (n === 1 ? ' opção' : ' opções'),
+    video: 'Vídeo', animated: 'Animado',
+    dlLabel: (l, k) => `Baixar ${l} ${k}`, copyLabel: (l) => `Copiar link direto de ${l}`, copyTitle: 'Copiar link direto',
+    copied: 'Link direto copiado', copyFail: 'Não foi possível copiar. Mantenha pressionado o botão de download.',
+    saved: (l) => `${l} salvo`, busy: 'Já existe um download em andamento', noLink: 'Link de download indisponível',
+    downloading: (l) => `Baixando ${l}…`, savedDevice: 'Salvo no seu dispositivo',
+    opening: 'Abrindo download…', startedBrowser: 'Download iniciado no navegador',
+    errors: {
+      INVALID_URL      : 'Digite um link válido do Pinterest.',
+      NO_MEDIA         : 'Este pin não tem vídeo ou imagem para baixar. Ele pode ser privado ou só de texto.',
+      PINTEREST_BLOCKED: 'O Pinterest recusou a solicitação. O pin pode ser privado ou o Pinterest está limitando o acesso. Tente de novo em alguns minutos.',
+      TIMEOUT          : 'O Pinterest demorou demais para responder. Tente novamente.',
+      FETCH_FAILED     : 'Não foi possível buscar este pin. Tente novamente.',
+      RATE_LIMIT       : (j) => `Você atingiu o limite por hora. Tente novamente em ${Math.ceil((j.retryAfter || 3600) / 60)} min.`,
+    },
+  },
+};
+const T = STRINGS[(document.documentElement.lang || 'en').slice(0, 2).toLowerCase()] || STRINGS.en;
+
+function errorText(json, status) {
+  const e = json && json.code && T.errors[json.code];
+  if (e) return typeof e === 'function' ? e(json) : e;
+  return (json && (json.error && json.error !== 'ABUSE_DETECTED' ? json.error : json.message)) || T.failed(status);
+}
+
 const urlInput = $('urlInput');
 const clearBtn = $('clearBtn');
 const pasteBtn = $('pasteBtn');
@@ -42,25 +104,25 @@ urlInput.addEventListener('keydown', (e) => {
 pasteBtn.addEventListener('click', async () => {
   try {
     const text = (await navigator.clipboard.readText() || '').trim();
-    if (!text) return toast('Clipboard is empty', 'err');
+    if (!text) return toast(T.clipEmpty, 'err');
     urlInput.value = text;
     clearBtn.style.display = 'flex';
     hideAlert();
-    toast('Link pasted', 'ok');
+    toast(T.pasted, 'ok');
     // A disabled button never fires a synthetic click, so if a fetch is
     // already running this would silently no-op — the link sits in the
     // input with no feedback that auto-submit didn't happen.
     if (PIN_RE.test(text) && !fetchBtn.disabled) fetchBtn.click();
   } catch (_) {
     urlInput.focus();
-    toast('Press Ctrl+V / ⌘V to paste', 'err');
+    toast(T.pasteKeys, 'err');
   }
 });
 
 function setLoading(on) {
   fetchBtn.disabled = on;
   fetchBtn.classList.toggle('is-loading', on);
-  $('btnText').textContent = on ? 'Fetching video…' : 'Get Video';
+  $('btnText').textContent = on ? T.fetching : T.getVideo;
 }
 
 /* ── Fetch ─────────────────────────────────────────────────────────────── */
@@ -69,12 +131,12 @@ fetchBtn.addEventListener('click', async () => {
   hideAlert();
 
   if (!url) {
-    showAlert('Paste a Pinterest link first.');
+    showAlert(T.needLink);
     urlInput.focus();
     return;
   }
   if (!PIN_RE.test(url)) {
-    showAlert("That doesn't look like a Pinterest link. Use a pinterest.com or pin.it URL.");
+    showAlert(T.notPin);
     return;
   }
 
@@ -97,15 +159,15 @@ fetchBtn.addEventListener('click', async () => {
     try { json = await res.json(); } catch (_) {}
 
     if (!res.ok || !json.success) {
-      showAlert(json.error || `Request failed (${res.status}). Please try again.`);
+      showAlert(errorText(json, res.status));
       return;
     }
 
     render(json.data);
-    toast('Ready to download', 'ok');
+    toast(T.ready, 'ok');
   } catch (err) {
-    if (err.name === 'AbortError') showAlert('Request timed out. Please try again.');
-    else showAlert('Cannot reach the server. Check your connection and try again.');
+    if (err.name === 'AbortError') showAlert(T.timeout);
+    else showAlert(T.offline);
   } finally {
     clearTimeout(timer);
     inflight = null;
@@ -114,13 +176,7 @@ fetchBtn.addEventListener('click', async () => {
 });
 
 /* ── Render result ─────────────────────────────────────────────────────── */
-const SUBTITLE = {
-  '1080p': 'Full HD',
-  '720p' : 'HD Ready',
-  '480p' : 'Standard',
-  '360p' : 'Data saver',
-  'HD'   : 'High quality',
-};
+const SUBTITLE = T.sub;
 
 function formatSize(bytes) {
   if (!bytes) return '';
@@ -151,20 +207,20 @@ previewBtn.addEventListener('click', () => {
 previewVideo.addEventListener('error', () => {
   resetPreview();
   previewBtn.style.display = 'none';
-  toast('Preview unavailable for this video', 'err');
+  toast(T.previewNA, 'err');
 });
 
 function render(d) {
-  $('resultTitle').textContent = d.title || 'Pinterest Video';
+  $('resultTitle').textContent = d.title || T.untitled;
   const isVideo = d.mediaType === 'video';
   const first   = d.qualities[0];
 
   /* tags */
   const tags = [];
-  if (isVideo && d.qualities.some((q) => q.label === '1080p')) tags.push(['pill-ok', 'Full HD available']);
-  else if (isVideo && d.qualities.some((q) => q.label === '720p')) tags.push(['pill-ok', 'HD available']);
+  if (isVideo && d.qualities.some((q) => q.label === '1080p')) tags.push(['pill-ok', T.fullHd]);
+  else if (isVideo && d.qualities.some((q) => q.label === '720p')) tags.push(['pill-ok', T.hd]);
   if (d.duration) tags.push(['', d.duration]);
-  tags.push(['', d.mediaType === 'gif' ? 'GIF' : isVideo ? 'MP4' : 'Image']);
+  tags.push(['', d.mediaType === 'gif' ? 'GIF' : isVideo ? 'MP4' : T.image]);
   $('resultTags').innerHTML =
     '<span class="pill pill-brand">Pinterest</span>' +
     tags.map(([cls, txt]) => `<span class="pill ${cls}">${esc(txt)}</span>`).join('');
@@ -179,7 +235,7 @@ function render(d) {
   if (d.thumbnail) {
     img.style.display = 'block';
     empty.style.display = 'none';
-    img.alt = (d.title || 'Pinterest video') + ' thumbnail';
+    img.alt = (d.title || T.untitled) + ' ' + T.thumbAlt;
     img.src = d.thumbnail;
   } else {
     img.removeAttribute('src');
@@ -197,12 +253,12 @@ function render(d) {
   /* quality buttons */
   const grid = $('qualGrid');
   grid.innerHTML = '';
-  document.querySelector('.qual-head .t').textContent = isVideo ? 'Choose a quality' : 'Choose a size';
-  $('qualCount').textContent = d.qualities.length + (d.qualities.length === 1 ? ' option' : ' options');
+  document.querySelector('.qual-head .t').textContent = isVideo ? T.chooseQ : T.chooseS;
+  $('qualCount').textContent = T.options(d.qualities.length);
 
   d.qualities.forEach((q, i) => {
     const kind = (q.ext || 'mp4').toUpperCase();
-    const desc = isVideo ? (SUBTITLE[q.label] || 'Video') : (q.tag || (q.type === 'gif' ? 'Animated' : 'Image'));
+    const desc = isVideo ? (SUBTITLE[q.label] || T.video) : (q.tag || (q.type === 'gif' ? T.animated : T.image));
     const sub  = [desc, kind, formatSize(q.size)].filter(Boolean).join(' · ');
 
     const wrap = document.createElement('div');
@@ -211,7 +267,7 @@ function render(d) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'q' + (i === 0 ? ' best' : '');
-    btn.setAttribute('aria-label', `Download ${q.label} ${kind}`);
+    btn.setAttribute('aria-label', T.dlLabel(q.label, kind));
     btn.innerHTML =
       `<span><span class="l">${esc(q.label)}</span>` +
       `<span class="s">${esc(sub)}</span></span>` +
@@ -223,15 +279,15 @@ function render(d) {
     const copy = document.createElement('button');
     copy.type = 'button';
     copy.className = 'q-copy';
-    copy.setAttribute('aria-label', `Copy direct link for ${q.label}`);
-    copy.title = 'Copy direct link';
+    copy.setAttribute('aria-label', T.copyLabel(q.label));
+    copy.title = T.copyTitle;
     copy.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
     copy.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(q.url);
-        toast('Direct link copied', 'ok');
+        toast(T.copied, 'ok');
       } catch (_) {
-        toast('Could not copy. Long-press the download button instead.', 'err');
+        toast(T.copyFail, 'err');
       }
     });
 
@@ -278,12 +334,13 @@ function finish(msg, label) {
   progPct.textContent  = '100%';
   progTrack.setAttribute('aria-valuenow', '100');
   progStatus.textContent = msg;
-  if (label) toast(`${label} saved`, 'ok');
+  if (label) toast(T.saved(label), 'ok');
   setTimeout(() => { prog.classList.remove('show'); busy = false; }, 2800);
 }
 
 function buildFilename(title, label, ext) {
   const slug = (title || 'pinterest-video')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
@@ -322,15 +379,15 @@ async function streamToBlob(endpoint, label, mime) {
     chunks.push(value);
     received += value.length;
     if (total) setPct((received / total) * 100);
-    else progStatus.textContent = `Downloading ${label}… ${(received / 1048576).toFixed(1)} MB`;
+    else progStatus.textContent = `${T.downloading(label)} ${(received / 1048576).toFixed(1)} MB`;
   }
 
   return new Blob(chunks, { type: mime });
 }
 
 async function download(q, d) {
-  if (busy) return toast('A download is already running');
-  if (!q.url) return toast('Download link unavailable', 'err');
+  if (busy) return toast(T.busy);
+  if (!q.url) return toast(T.noLink, 'err');
 
   busy = true;
   const mime     = MIME[q.ext] || 'application/octet-stream';
@@ -348,7 +405,7 @@ async function download(q, d) {
 
   progFill.classList.remove('done');
   progFill.style.width = '0%';
-  progStatus.textContent = `Downloading ${q.label}…`;
+  progStatus.textContent = T.downloading(q.label);
   setPct(0);
   prog.classList.add('show');
 
@@ -361,14 +418,14 @@ async function download(q, d) {
       blob = await streamToBlob(proxied, q.label, mime);
     }
     saveBlob(blob, filename);
-    finish('Saved to your device', q.label);
+    finish(T.savedDevice, q.label);
   } catch (_) {
     // Last resort: hand the URL to the browser's own download manager.
     // Never throws in a way that leaves `busy` stuck — the timeout below
     // always runs and always calls finish().
     try {
       setIndeterminate();
-      progStatus.textContent = 'Opening download…';
+      progStatus.textContent = T.opening;
       const a = document.createElement('a');
       a.href = direct;
       a.rel = 'noopener';
@@ -379,7 +436,7 @@ async function download(q, d) {
     } catch (err) {
       console.error('download fallback failed', err);
     } finally {
-      setTimeout(() => finish('Download started in your browser', q.label), 1600);
+      setTimeout(() => finish(T.startedBrowser, q.label), 1600);
     }
   }
 }

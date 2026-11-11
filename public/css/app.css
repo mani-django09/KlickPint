@@ -188,6 +188,15 @@ strong{color:var(--text);font-weight:650}
 
 .nav-toggle{display:none}
 
+/* Language switcher */
+.lang-btn{
+  height:44px;padding:0 12px;border-radius:12px;display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--line);background:var(--elev);color:var(--text-2);
+  font-size:.8125rem;font-weight:650;letter-spacing:.02em;transition:.18s var(--ease);
+}
+.lang-btn:hover{color:var(--text);border-color:var(--text-3);transform:translateY(-1px)}
+.lang-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
 /* Mobile drawer */
 .nav-drawer{
   display:none;flex-direction:column;gap:2px;padding:8px 24px 18px;
