@@ -367,3 +367,7 @@ tbody tr:hover td{background:var(--bg-sunk)}
 .result-actions{padding:0 20px 20px;display:flex;justify-content:center}
 .q .l,.q .s{display:block}
 .q .s{line-height:1.35}
+
+/* Guide cards on the homepage reuse .feat as links */
+a.feat{display:block;color:inherit;text-decoration:none}
+a.feat h3{color:var(--text)}

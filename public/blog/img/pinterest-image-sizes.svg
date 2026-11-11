@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+  <title>Pinterest image sizes: 236x, 474x, 736x and originals compared by width</title>
+  <rect width="960" height="420" fill="#ffffff"/>
+  <text x="40" y="48" font-size="22" font-weight="700" fill="#18181b">One pin, several copies</text>
+  <text x="40" y="74" font-size="14" fill="#71717a">Pinterest stores each image at a few widths. The folder name in the image URL tells you which one you have.</text>
+
+  <!-- scale: 1px of bar = 0.5 image px, so 1600px original = 800 -->
+  <g font-size="15">
+    <text x="40" y="128" font-weight="700" fill="#18181b">/236x/</text>
+    <rect x="160" y="108" width="118" height="30" rx="7" fill="#fecdd3"/>
+    <text x="290" y="129" fill="#52525b">236 px wide · grid thumbnails</text>
+
+    <text x="40" y="192" font-weight="700" fill="#18181b">/474x/</text>
+    <rect x="160" y="172" width="237" height="30" rx="7" fill="#fda4af"/>
+    <text x="409" y="193" fill="#52525b">474 px wide · grid on sharp screens</text>
+
+    <text x="40" y="256" font-weight="700" fill="#18181b">/736x/</text>
+    <rect x="160" y="236" width="368" height="30" rx="7" fill="#fb7185"/>
+    <text x="540" y="257" fill="#52525b">736 px wide · opened pin</text>
+
+    <text x="40" y="320" font-weight="700" fill="#18181b">/originals/</text>
+    <rect x="160" y="300" width="760" height="30" rx="7" fill="#e60023"/>
+    <text x="176" y="321" fill="#ffffff" font-weight="700">The file the creator uploaded (example: 1520 px wide)</text>
+  </g>
+  <text x="40" y="384" font-size="13" fill="#71717a">Bars drawn to scale. Original sizes vary from pin to pin; some uploads are smaller than 736 px, and then there is nothing bigger to get.</text>
+</svg>

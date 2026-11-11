@@ -64,7 +64,7 @@
       "author":{"@type":"Organization","name":"KlickPint"},
       "publisher":{"@type":"Organization","name":"KlickPint","url":"https://klickpint.online"},
       "datePublished":"2026-09-09",
-      "dateModified":"2026-10-22"
+      "dateModified":"2026-11-11"
     }
   ]
 }
@@ -77,8 +77,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/app.css?v=499b01e4">
-<link rel="stylesheet" href="/css/page.css?v=499b01e4">
+<link rel="stylesheet" href="/css/app.css?v=4c398734">
+<link rel="stylesheet" href="/css/page.css?v=4c398734">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -122,7 +122,7 @@
 
   <div class="article-meta">
     <span class="meta-tag">Troubleshooting</span>
-    <span>Updated: October 2026</span>
+    <span>Updated: November 2026</span>
     <span>3 min read</span>
   </div>
 
@@ -135,8 +135,8 @@
   <div class="step-box">
     <div class="step-num">1</div>
     <div class="step-content">
-      <h3>The pin is an image, not a video</h3>
-      <p>Not every pin on Pinterest is a video. Plenty are static images or GIFs saved from other sites. If KlickPint says "no video found," open the pin on Pinterest itself and check whether it plays as a video with a progress bar. If it's just a still image, there's nothing to download.</p>
+      <h3>The pin links out instead of holding a file</h3>
+      <p>KlickPint downloads videos, images and GIFs. Some pins hold none of those, though: text-only pins, and pins that are only a link to an article or shop. For those you'll see "This pin has no downloadable video or image." Open the pin on Pinterest. If tapping it sends you to another website, the video lives there, not on Pinterest.</p>
     </div>
   </div>
 
@@ -168,7 +168,7 @@
     <div class="step-num">5</div>
     <div class="step-content">
       <h3>Pinterest is temporarily rate-limiting requests</h3>
-      <p>Like any platform, Pinterest occasionally throttles automated-looking traffic for a few minutes at a time. If several pins in a row fail with a "service unavailable" message, that's what's happening, so wait 5 minutes and try again rather than retrying immediately, which can extend the cooldown.</p>
+      <p>Like any platform, Pinterest occasionally throttles automated-looking traffic for a few minutes at a time. If several public pins in a row fail with "Pinterest refused the request", that's what's happening. Wait about five minutes before trying again. Retrying straight away tends to make the block last longer.</p>
     </div>
   </div>
 
@@ -196,14 +196,17 @@
 
   <h2>Frequently Asked Questions</h2>
 
-  <h3>Why does it say "Could not extract Pin ID"?</h3>
-  <p>This means the link you pasted doesn't contain a recognizable pin identifier, usually because it's a board, profile, or search-results link rather than a specific pin. Open the exact pin and copy its link again.</p>
+  <h3>Why does it say "That doesn't look like a Pinterest link"?</h3>
+  <p>The text you pasted isn't a pinterest.com or pin.it address. This happens when the clipboard still holds something else, or when an app copied a caption along with the link. Copy the link again with Share → Copy link.</p>
+
+  <h3>It says I've reached the hourly limit. Why?</h3>
+  <p>Each connection can look up 25 pins per hour. The limit stops bots from hammering Pinterest through us, which would get the site blocked for everyone. The message tells you how many minutes are left. Normal use never gets close.</p>
 
   <h3>The preview loads but the download button doesn't work. Why?</h3>
   <p>This is almost always browser-related: an ad blocker or download-manager extension intercepting the request, or downloads disabled for the site in your browser's settings. Try a different browser to confirm, then check your extensions if the issue persists.</p>
 
   <h3>Does this happen more with certain types of pins?</h3>
-  <p>Yes. Pins with very short lifespans (recently posted, still processing on Pinterest's end) sometimes don't have their video variants fully generated yet. Waiting a few minutes after a video is first posted usually resolves this.</p>
+  <p>Yes. Very new pins sometimes aren't finished processing on Pinterest's side, so not every quality exists yet. Waiting a few minutes after a video is first posted usually resolves this.</p>
 
   <div class="tip-box">
     <strong>Quick check:</strong> Before assuming something's broken, open the pin's link directly in your browser first. If Pinterest itself won't load the video, the problem is on Pinterest's end, not the downloader.
@@ -266,6 +269,6 @@
   </div>
 </footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/app.js?v=499b01e4" defer></script>
+<script src="/js/app.js?v=4c398734" defer></script>
 </body>
 </html>

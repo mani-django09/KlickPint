@@ -76,7 +76,7 @@
       "author":{"@type":"Organization","name":"KlickPint"},
       "publisher":{"@type":"Organization","name":"KlickPint","url":"https://klickpint.online"},
       "datePublished":"2026-09-09",
-      "dateModified":"2026-10-22"
+      "dateModified":"2026-11-11"
     }
   ]
 }
@@ -89,8 +89,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/app.css?v=499b01e4">
-<link rel="stylesheet" href="/css/page.css?v=499b01e4">
+<link rel="stylesheet" href="/css/app.css?v=4c398734">
+<link rel="stylesheet" href="/css/page.css?v=4c398734">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -134,7 +134,7 @@
 
   <div class="article-meta">
     <span class="meta-tag">Tutorial</span>
-    <span>Updated: October 2026</span>
+    <span>Updated: November 2026</span>
     <span>3 min read</span>
     <span>Works on Android 9+</span>
   </div>
@@ -185,7 +185,7 @@
   </div>
 
   <h2>Where Exactly Does the File Go?</h2>
-  <p>This trips people up more than any other step, because it varies slightly by phone. On stock Android and most Samsung/Pixel devices, downloaded videos land in <code>Internal Storage/Download</code>, and your Gallery or Google Photos app will show them in the main timeline within a minute because Android's <code>MediaStore</code> scanner indexes that folder automatically.</p>
+  <p>It varies a little by phone. On stock Android and most Samsung/Pixel devices, downloaded videos land in <code>Internal Storage/Download</code>, and your Gallery or Google Photos app will show them in the main timeline within a minute because Android's <code>MediaStore</code> scanner indexes that folder automatically.</p>
   <p>If it doesn't show up in Gallery after a minute or two, open the <strong>Files by Google</strong> app (or your phone's built-in "My Files" / "File Manager"), go to <strong>Downloads</strong>, and it'll be sitting there as an <code>.mp4</code>. You can open it directly or long-press to move/copy it into your Camera or Pictures folder if you want it in a specific album.</p>
 
   <h2>Android vs iPhone: What's Different</h2>
@@ -194,9 +194,9 @@
       <tr><th>Step</th><th>Android</th><th>iPhone</th></tr>
     </thead>
     <tbody>
-      <tr><td>Where the file lands</td><td>Shared <code>Download</code> folder</td><td>Files app → On My iPhone → Downloads</td></tr>
+      <tr><td>Where the file lands</td><td>Shared <code>Download</code> folder</td><td>Files app → Downloads (in iCloud Drive by default)</td></tr>
       <tr><td>Reaches your photo gallery</td><td>Usually automatic</td><td>Manual: Share → Save Video</td></tr>
-      <tr><td>Browser</td><td>Any (Chrome, Firefox, Samsung Internet)</td><td>Safari (others can't save files the same way)</td></tr>
+      <tr><td>Browser</td><td>Any (Chrome, Firefox, Samsung Internet)</td><td>Safari is easiest; Chrome saves to its own folder</td></tr>
       <tr><td>Notification when done</td><td>Yes, in the shade</td><td>Small download-arrow badge in Safari's toolbar</td></tr>
     </tbody>
   </table>
@@ -280,6 +280,6 @@
   </div>
 </footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/app.js?v=499b01e4" defer></script>
+<script src="/js/app.js?v=4c398734" defer></script>
 </body>
 </html>

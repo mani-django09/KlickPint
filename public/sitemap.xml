@@ -9,7 +9,7 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://klickpint.online/"/>
     <xhtml:link rel="alternate" hreflang="pt" href="https://klickpint.online/pt/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://klickpint.online/"/>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -24,37 +24,37 @@
   </url>
   <url>
     <loc>https://klickpint.online/blog/</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://klickpint.online/blog/how-to-download-pinterest-videos-iphone.html</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://klickpint.online/blog/how-to-download-pinterest-videos-android.html</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://klickpint.online/blog/pinterest-video-quality-guide.html</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://klickpint.online/blog/is-downloading-pinterest-videos-legal.html</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://klickpint.online/blog/pinterest-video-download-not-working.html</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -78,7 +78,7 @@
   </url>
   <url>
     <loc>https://klickpint.online/about.html</loc>
-    <lastmod>2026-10-18</lastmod>
+    <lastmod>2026-11-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
@@ -93,5 +93,17 @@
     <lastmod>2026-10-18</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://klickpint.online/blog/pinterest-video-size-specs.html</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://klickpint.online/blog/save-pinterest-images-gifs-full-quality.html</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

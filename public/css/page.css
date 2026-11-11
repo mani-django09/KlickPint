@@ -107,3 +107,12 @@
 .prose th{background:var(--bg-soft);font-weight:700;color:var(--text)}
 .prose td{color:var(--text-2)}
 @media (max-width:640px){.prose table{display:block;overflow-x:auto}}
+
+/* ── Figures (article images) ────────────────────────────────────────── */
+.figure{margin:28px 0}
+.figure img{
+  display:block;width:100%;height:auto;border-radius:var(--r);
+  border:1px solid var(--line);background:#fff;
+}
+.figure.narrow img{max-width:340px;margin-inline:auto}
+.figure figcaption{margin-top:10px;font-size:.84rem;line-height:1.6;color:var(--text-3);text-align:center}
