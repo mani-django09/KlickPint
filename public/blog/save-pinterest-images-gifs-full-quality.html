@@ -86,8 +86,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/app.css?v=e4f63688">
-<link rel="stylesheet" href="/css/page.css?v=e4f63688">
+<link rel="stylesheet" href="/css/app.css?v=1ef7951b">
+<link rel="stylesheet" href="/css/page.css?v=1ef7951b">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -98,7 +98,9 @@
       <span class="brand-name">Klick<i>Pint</i></span>
     </a>
     <nav class="nav-links" aria-label="Primary">
-      <a href="/#tool">Downloader</a>
+      <a href="/">Video downloader</a>
+      <a href="/pinterest-image-downloader">Image downloader</a>
+      <a href="/pinterest-gif-downloader">GIF downloader</a>
       <a href="/#how-to">How it works</a>
       <a href="/#faq">FAQ</a>
       <a href="/blog/">Blog</a>
@@ -155,7 +157,7 @@
   <p>Right-click "Save image as" on a grid thumbnail and you get the 236 or 474 pixel copy. A screenshot is worse, because it captures whatever your screen happened to display, compression and all. Even the opened pin usually shows the 736 pixel version. The full-size file sits in a folder called <code>/originals/</code>, and Pinterest doesn't link to it anywhere you can tap.</p>
 
   <h2>Method 1: KlickPint (phone or computer)</h2>
-  <p>This is the method we built KlickPint for, and it works the same for videos, images and GIFs.</p>
+  <p>This is the method we built KlickPint for, and it works the same for videos, images and GIFs. There are dedicated pages for the <a href="/pinterest-image-downloader">Pinterest image downloader</a> and the <a href="/pinterest-gif-downloader">Pinterest GIF downloader</a>, but any of them accepts any pin.</p>
 
   <figure class="figure narrow">
     <img src="/blog/img/klickpint-on-phone.jpg" alt="KlickPint open on a phone with a pin.it link pasted into the input box and the Get Video button below it" width="750" height="1071" loading="lazy" decoding="async">
@@ -296,6 +298,6 @@
   </div>
 </footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/app.js?v=e4f63688" defer></script>
+<script src="/js/app.js?v=1ef7951b" defer></script>
 </body>
 </html>

@@ -119,10 +119,15 @@ pasteBtn.addEventListener('click', async () => {
   }
 });
 
+// The page's own button text ("Get Video", "Get Image", "Get GIF") is the idle
+// label; a page can also set data-busy for the loading text.
+const BTN_IDLE = $('btnText').textContent.trim() || T.getVideo;
+const BTN_BUSY = fetchBtn.dataset.busy || T.fetching;
+
 function setLoading(on) {
   fetchBtn.disabled = on;
   fetchBtn.classList.toggle('is-loading', on);
-  $('btnText').textContent = on ? T.fetching : T.getVideo;
+  $('btnText').textContent = on ? BTN_BUSY : BTN_IDLE;
 }
 
 /* ── Fetch ─────────────────────────────────────────────────────────────── */

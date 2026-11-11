@@ -165,8 +165,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 
-<link rel="stylesheet" href="/css/app.css?v=e4f63688">
-<link rel="stylesheet" href="/css/home.css?v=e4f63688">
+<link rel="stylesheet" href="/css/app.css?v=1ef7951b">
+<link rel="stylesheet" href="/css/home.css?v=1ef7951b">
 </head>
 <body>
 
@@ -183,6 +183,9 @@
     </a>
 
     <nav class="nav-links" aria-label="Primary">
+      <a href="/" aria-current="page">Video</a>
+      <a href="/pinterest-image-downloader">Image</a>
+      <a href="/pinterest-gif-downloader">GIF</a>
       <a href="/blog/">Blog</a>
     </nav>
 
@@ -201,6 +204,8 @@
     </div>
   </div>
   <div class="nav-drawer" id="navDrawer">
+    <a href="/pinterest-image-downloader">Image downloader</a>
+    <a href="/pinterest-gif-downloader">GIF downloader</a>
     <a href="/blog/">Blog</a>
     <a href="/privacy.html">Privacy</a>
     <a href="/pt/" hreflang="pt" lang="pt">Português</a>
@@ -583,7 +588,9 @@
 
       <div class="footer-col">
         <h4>Product</h4>
-        <a href="#tool">Downloader</a>
+        <a href="/">Video downloader</a>
+        <a href="/pinterest-image-downloader">Image downloader</a>
+        <a href="/pinterest-gif-downloader">GIF downloader</a>
         <a href="#how-to">How it works</a>
         <a href="#formats">Formats</a>
         <a href="#faq">FAQ</a>
@@ -617,7 +624,7 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="/js/app.js?v=e4f63688" defer></script>
-<script src="/js/home.js?v=e4f63688" defer></script>
+<script src="/js/app.js?v=1ef7951b" defer></script>
+<script src="/js/home.js?v=1ef7951b" defer></script>
 </body>
 </html>
