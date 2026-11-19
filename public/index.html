@@ -77,7 +77,7 @@
       "operatingSystem": "Any",
       "browserRequirements": "Requires JavaScript",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-      "featureList": "HD 1080p download, 720p HD, 480p and 360p, pin.it link support, no login required, no watermark, no limits"
+      "featureList": "HD 1080p download, 720p HD, 480p and 360p, pin.it link support, image and GIF downloads, no login required, no watermark"
     },
     {
       "@type": "WebSite",
@@ -103,7 +103,7 @@
           "name": "Is KlickPint completely free to use?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, KlickPint is 100% free. There is no subscription, credit card or premium tier, and 1080p and unlimited downloads are free too. The site is supported by ads."
+            "text": "Yes, KlickPint is 100% free. There is no subscription, credit card or premium tier, and 1080p is free too. There is no daily download cap; to keep bots out, each connection can look up 25 pins an hour. The site is supported by ads."
           }
         },
         {
@@ -165,8 +165,8 @@
 (function(){try{var t=localStorage.getItem('kp-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#07070A';}}catch(e){}})();
 </script>
 
-<link rel="stylesheet" href="/css/app.css?v=5bf18694">
-<link rel="stylesheet" href="/css/home.css?v=5bf18694">
+<link rel="stylesheet" href="/css/app.css?v=790837ab">
+<link rel="stylesheet" href="/css/home.css?v=790837ab">
 </head>
 <body>
 
@@ -315,9 +315,9 @@
   <div class="wrap">
     <div class="band-in">
       <div class="band-cell"><div class="band-n">1080p</div><div class="band-l">Max quality, free</div></div>
-      <div class="band-cell"><div class="band-n">&lt;2s</div><div class="band-l">Average fetch time</div></div>
+      <div class="band-cell"><div class="band-n">pin.it</div><div class="band-l">Short links work too</div></div>
       <div class="band-cell"><div class="band-n">0</div><div class="band-l">Accounts required</div></div>
-      <div class="band-cell"><div class="band-n">∞</div><div class="band-l">Downloads allowed</div></div>
+      <div class="band-cell"><div class="band-n">$0</div><div class="band-l">Every quality, free</div></div>
     </div>
   </div>
 </div>
@@ -335,7 +335,7 @@
       <article class="feat">
         <div class="feat-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12z"/></svg></div>
         <h3>Fast</h3>
-        <p>Results in about a second. Popular pins are cached, so repeat links come back instantly.</p>
+        <p>Most links are ready in a few seconds. A pin someone fetched recently is cached, so it comes back almost instantly.</p>
       </article>
 
       <article class="feat">
@@ -448,7 +448,7 @@
     <div class="faq" style="margin-inline:auto">
       <details>
         <summary>Is KlickPint really free? What's the catch?</summary>
-        <div class="a">No subscription, no card, no "basic vs premium" split. 1080p and unlimited downloads are free. The site pays for itself with ads.</div>
+        <div class="a">No subscription, no card, no "basic vs premium" split. 1080p is free and there is no daily cap. The only limit is 25 pin lookups an hour per connection, which stops bots and which normal use never reaches. The site pays for itself with ads.</div>
       </details>
       <details>
         <summary>Does it work with pin.it short links?</summary>
@@ -583,7 +583,7 @@
           </span>
           <span class="brand-name">Klick<i>Pint</i></span>
         </a>
-        <p class="footer-desc">The free Pinterest video downloader. HD 1080p, no login, no watermark, no limits.</p>
+        <p class="footer-desc">The free Pinterest video, image and GIF downloader. HD 1080p, no login, no watermark.</p>
       </div>
 
       <div class="footer-col">
@@ -624,7 +624,7 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="/js/app.js?v=5bf18694" defer></script>
-<script src="/js/home.js?v=5bf18694" defer></script>
+<script src="/js/app.js?v=790837ab" defer></script>
+<script src="/js/home.js?v=790837ab" defer></script>
 </body>
 </html>
