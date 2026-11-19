@@ -848,6 +848,61 @@ function buildImageQualities(images) {
   return out;
 }
 
+// ── Image pins without API data ────────────────────────────────────────────
+// Pinterest's CDN keeps each image at several widths in sibling folders:
+//   https://i.pinimg.com/236x/ab/cd/ef/<hash>.jpg   (grid)
+//   https://i.pinimg.com/736x/ab/cd/ef/<hash>.jpg   (opened pin)
+//   https://i.pinimg.com/originals/ab/cd/ef/<hash>.<ext>   (the upload)
+// The page's og:image is one of the resized copies, and the original's
+// extension can differ (png, webp, gif), so probe the likely ones in
+// parallel with HEAD requests and use the first that exists, in order.
+const PINIMG_RE = /^https:\/\/i\.pinimg\.com\/[^/]+\/((?:[0-9a-f]{2}\/){3}[0-9a-f]+)\.(jpe?g|png|webp|gif)(?:\?.*)?$/i;
+
+// Resolve with the index of the first promise (in array order) that yields
+// true, as soon as every earlier one has settled false; -1 if none. The usual
+// case (original has the same extension as og:image) returns after one HEAD,
+// without waiting for the slower misses on the other extensions.
+function firstTrueInOrder(promises) {
+  return new Promise((resolve) => {
+    const res = new Array(promises.length);
+    const check = () => {
+      for (let i = 0; i < res.length; i++) {
+        if (res[i] === undefined) return;
+        if (res[i]) return resolve(i);
+      }
+      resolve(-1);
+    };
+    promises.forEach((p, i) => p.then((v) => { res[i] = !!v; check(); }, () => { res[i] = false; check(); }));
+  });
+}
+
+async function findOriginalImage(url) {
+  const fallback = { mediaType: 'image', qualities: [{ label: 'Image', tag: '', url, type: 'image', ext: extFromUrl(url, 'jpg') }] };
+  const m = url.match(PINIMG_RE);
+  if (!m) return fallback;
+  const [, key, ext0] = m;
+  const exts = [...new Set([ext0.toLowerCase(), 'jpg', 'png', 'webp', 'gif'])];
+  const headers = { 'User-Agent': randomUA(), 'Referer': 'https://www.pinterest.com/' };
+  const exists = (u) => axios.head(u, { timeout: 4000, headers, validateStatus: () => true })
+    .then(r => r.status === 200).catch(() => false);
+
+  const mediumUrl = `https://i.pinimg.com/736x/${key}.jpg`;
+  const [i, hasMedium] = await Promise.all([
+    firstTrueInOrder(exts.map(e => exists(`https://i.pinimg.com/originals/${key}.${e}`))),
+    exists(mediumUrl),
+  ]);
+  if (i < 0) return fallback;
+
+  const ext = exts[i];
+  const origUrl = `https://i.pinimg.com/originals/${key}.${ext}`;
+  if (ext === 'gif') {
+    return { mediaType: 'gif', qualities: [{ label: 'GIF', tag: 'Animated', url: origUrl, type: 'gif', ext: 'gif' }] };
+  }
+  const qualities = [{ label: 'Original', tag: 'Full size', url: origUrl, type: 'image', ext: ext === 'jpeg' ? 'jpg' : ext }];
+  if (hasMedium && mediumUrl !== origUrl) qualities.push({ label: 'Medium', tag: '736px', url: mediumUrl, type: 'image', ext: 'jpg' });
+  return { mediaType: 'image', qualities };
+}
+
 // Ask the CDN how big each file is so the buttons can show it. Best effort:
 // a slow or failing HEAD just leaves that button without a size.
 //
@@ -930,8 +985,11 @@ async function getPinInfo(rawUrl) {
       thumbnail = scraped.thumbnail || thumbnail;
       if (scraped.videos.length > 0) recordPinterestSuccess();
       else if (thumbnail) {
-        qualities = [{ label: 'Original', tag: '', url: thumbnail, type: 'image', ext: extFromUrl(thumbnail, 'jpg') }];
-        mediaType = 'image';
+        // og:image is one of Pinterest's resized copies (236x/736x), not the
+        // upload. Find the real file under /originals/ before calling it that.
+        const img = await findOriginalImage(thumbnail);
+        qualities = img.qualities;
+        mediaType = img.mediaType;
         // An image pin is just as much proof Pinterest is answering us as a
         // video pin is; without this a run of image lookups never reset the
         // 429/403 failure counter.
