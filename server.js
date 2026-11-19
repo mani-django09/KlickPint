@@ -701,7 +701,12 @@ async function followToPin(startUrl) {
     resp.data?.destroy?.();
     const loc = resp.headers?.location;
     if (resp.status < 300 || resp.status >= 400 || !loc) break;
-    url = new URL(loc, url).href;
+    let next;
+    try { next = new URL(loc, url); } catch (_) { break; }
+    // SSRF guard for every hop, not just the first URL: never follow a
+    // redirect off Pinterest's own domains (or to a non-http(s) scheme).
+    if (!/^https?:$/.test(next.protocol) || !isPinterestHost(next.hostname)) break;
+    url = next.href;
   }
   return null;
 }
