@@ -49,10 +49,6 @@ function randomUA(mobile = false) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function randomDelay(min = 200, max = 800) {
-  return new Promise(r => setTimeout(r, Math.floor(Math.random() * (max - min) + min)));
-}
-
 // ── Rotate Accept-Language too for extra stealth ──────────────────
 const ACCEPT_LANGS = [
   'en-US,en;q=0.9',
@@ -123,14 +119,20 @@ class PinError extends Error {
 // ══════════════════════════════════════════════════════════════════
 //  ANTI-BAN: Retry with exponential back-off
 // ══════════════════════════════════════════════════════════════════
-async function withRetry(fn, maxAttempts = 3, baseDelay = 1000) {
+// Speed note: this used to default to 3 attempts with 1s/2s back-off and
+// retried 403s too. A 403 from Pinterest is a refusal, not a blip — the
+// same request a second later gets the same answer — so retrying it only
+// added ~3.5s before getPinInfo fell back to the HTML scrape. 403 now fails
+// fast (the caller's fallback is the real "retry"), and the back-off is
+// short enough that one retry of a network blip or 5xx costs < 1s.
+async function withRetry(fn, maxAttempts = 2, baseDelay = 300) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn();
     } catch (err) {
-      const isLast = attempt === maxAttempts;
       const is429  = err.response?.status === 429;
       const is403  = err.response?.status === 403;
+      const isLast = attempt === maxAttempts || is403;
 
       // A deleted pin stays deleted; retrying only burns time and requests.
       if (err.response?.status === 404 || err.response?.status === 410) throw err;
@@ -147,7 +149,7 @@ async function withRetry(fn, maxAttempts = 3, baseDelay = 1000) {
         throw err;
       }
 
-      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 500;
+      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 200;
       console.warn(`[Retry ${attempt}/${maxAttempts}] ${err.message} — waiting ${Math.round(delay)}ms`);
       await new Promise(r => setTimeout(r, delay));
     }
@@ -641,8 +643,14 @@ function isPinterestHost(hostname) {
 }
 
 // ── Resolve short/shared URLs ──────────────────────────────────────────────
+// Pinterest's own share/address-bar URLs often carry a title slug before the
+// ID: /pin/easy-pasta-recipe--739716307579351127/. The old /pin/(\d+) match
+// missed those, fetched the page, still found no "/pin/<digits>" in the URL
+// and told the user the link "doesn't lead to a pin".
+const PIN_PATH_RE = /\/pin\/(?:[^/?#]*--)?(\d+)/;
+
 async function resolveUrl(rawUrl) {
-  const direct = rawUrl.match(/pinterest\.[a-z.]+\/pin\/(\d+)/);
+  const direct = rawUrl.match(/pinterest\.[a-z.]+\/pin\/(?:[^/?#]*--)?(\d+)/);
   if (direct) return { pinId: direct[1], cleanUrl: `https://www.pinterest.com/pin/${direct[1]}/` };
 
   // SSRF guard: without this, ANY string merely containing the substring
@@ -660,29 +668,93 @@ async function resolveUrl(rawUrl) {
     throw new PinError('INVALID_URL', 'Please enter a valid Pinterest URL.');
   }
 
-  const resp = await withRetry(() =>
-    axios.get(rawUrl, {
-      maxRedirects : 10,
-      timeout      : 12000,
-      headers      : buildHeaders(),
-      validateStatus: () => true,
-    })
-  );
-  const finalUrl = resp.request?.res?.responseUrl || resp.config?.url || rawUrl;
-  const m = finalUrl.match(/\/pin\/(\d+)/);
-  if (m) return { pinId: m[1], cleanUrl: `https://www.pinterest.com/pin/${m[1]}/` };
+  const cachedId = shortLinkGet(rawUrl);
+  const pinId    = cachedId || await followToPin(rawUrl);
+  if (pinId) {
+    if (!cachedId) shortLinkSet(rawUrl, pinId);
+    return { pinId, cleanUrl: `https://www.pinterest.com/pin/${pinId}/` };
+  }
   throw new PinError('PIN_NOT_FOUND', "That link doesn't lead to a pin. It may have been deleted, or it points to a board or profile.", 404);
 }
 
-// ── Pinterest API (primary method) ────────────────────────────────────────
-async function fetchViaAPI(pinId) {
-  await randomDelay(150, 600); // human-like delay
+// Follow a short link's redirects one hop at a time and stop at the first
+// URL that names a pin. This used to let axios follow every redirect and
+// then download the final pin PAGE (~1MB of HTML) just to read its URL —
+// a pin.it link already says "/pin/<id>/" in the 2nd–3rd Location header.
+// Bodies are never read (stream destroyed), and the hop limit matches the
+// old maxRedirects: 10. The host allowlist check above runs before this.
+async function followToPin(startUrl) {
+  let url = startUrl;
+  for (let hop = 0; hop <= 10; hop++) {
+    const m = url.match(PIN_PATH_RE);
+    if (m) return m[1];
+    if (hop === 10) break;
+    const resp = await withRetry(() =>
+      axios.get(url, {
+        maxRedirects  : 0,
+        timeout       : 8000,
+        headers       : buildHeaders(),
+        responseType  : 'stream',
+        validateStatus: () => true,
+      })
+    );
+    resp.data?.destroy?.();
+    const loc = resp.headers?.location;
+    if (resp.status < 300 || resp.status >= 400 || !loc) break;
+    url = new URL(loc, url).href;
+  }
+  return null;
+}
 
+// pin.it links are permanent, so remember where they point. Saves the
+// whole redirect walk when the same short link is pasted again (common:
+// one shared link, many visitors).
+const shortLinkCache = new Map();          // rawUrl → { pinId, expiresAt }
+const SHORTLINK_TTL  = 24 * 60 * 60 * 1000;
+const SHORTLINK_MAX  = 2000;
+
+function shortLinkGet(key) {
+  const e = shortLinkCache.get(key);
+  if (!e) return null;
+  if (Date.now() > e.expiresAt) { shortLinkCache.delete(key); return null; }
+  return e.pinId;
+}
+
+function shortLinkSet(key, pinId) {
+  if (shortLinkCache.size >= SHORTLINK_MAX) shortLinkCache.delete(shortLinkCache.keys().next().value);
+  shortLinkCache.set(key, { pinId, expiresAt: Date.now() + SHORTLINK_TTL });
+}
+
+// ── Pinterest API (primary method) ────────────────────────────────────────
+// No artificial "human-like" delay before the call any more: it added
+// 150–600ms to every lookup, and one server-side request per user lookup
+// doesn't look like a burst to Pinterest anyway. Rate limits + the 429/403
+// cool-down are what actually protect us.
+//
+// When the API answers 403 (as of Nov 2026 it does for every logged-out
+// request — measured locally on 5/5 real pins), skip it for API_SKIP_MS and
+// go straight to the HTML scrape, which works. One probe per window keeps
+// noticing if Pinterest opens it again. Saves ~400ms and one wasted
+// Pinterest request per lookup.
+const API_SKIP_MS = 10 * 60 * 1000;
+let apiSkipUntil  = 0;
+
+async function fetchViaAPI(pinId) {
+  if (Date.now() < apiSkipUntil) throw Object.assign(new Error('API skipped (403 recently)'), { code: 'API_SKIPPED' });
+  try {
+    return await fetchViaAPIOnce(pinId);
+  } catch (err) {
+    if (err.response?.status === 403) apiSkipUntil = Date.now() + API_SKIP_MS;
+    throw err;
+  }
+}
+
+async function fetchViaAPIOnce(pinId) {
   const url = `https://www.pinterest.com/resource/PinResource/get/?source_url=%2Fpin%2F${pinId}%2F&data=%7B%22options%22%3A%7B%22id%22%3A%22${pinId}%22%2C%22field_set_key%22%3A%22detailed%22%7D%7D`;
 
   const resp = await withRetry(() =>
     axios.get(url, {
-      timeout: 15000,
+      timeout: 8000,
       headers: {
         ...buildHeaders(),
         'Accept'           : 'application/json, text/javascript, */*; q=0.01',
@@ -702,11 +774,9 @@ async function fetchViaAPI(pinId) {
 
 // ── HTML Scrape (fallback) ─────────────────────────────────────────────────
 async function fetchViaHTML(cleanUrl) {
-  await randomDelay(300, 900);
-
   const resp = await withRetry(() =>
     axios.get(cleanUrl, {
-      timeout: 15000,
+      timeout: 10000,
       headers: buildHeaders(true),  // mobile UA for fallback
     })
   );
@@ -775,9 +845,17 @@ function buildImageQualities(images) {
 
 // Ask the CDN how big each file is so the buttons can show it. Best effort:
 // a slow or failing HEAD just leaves that button without a size.
+//
+// Time-boxed: the response waits at most SIZE_WAIT_MS for the HEADs. Any
+// that answer later still write their size onto the same quality objects,
+// which are the ones held in videoCache, so the next visitor for that pin
+// sees every size. Before this, a slow CDN edge could hold the whole
+// response for up to 3s just to print "4.2 MB" on a button.
+const SIZE_WAIT_MS = 1200;
+
 async function addFileSizes(qualities) {
   const headers = { 'User-Agent': randomUA(), 'Referer': 'https://www.pinterest.com/' };
-  await Promise.all(qualities.map(async (q) => {
+  const all = Promise.all(qualities.map(async (q) => {
     const { target } = parseDownloadTarget(q.url);
     if (!target) { q.size = 0; return; }
     try {
@@ -785,6 +863,9 @@ async function addFileSizes(qualities) {
       q.size = Number(r.headers['content-length']) || 0;
     } catch (_) { q.size = 0; }
   }));
+  let timer;
+  await Promise.race([all, new Promise(r => { timer = setTimeout(r, SIZE_WAIT_MS); })]);
+  clearTimeout(timer);
 }
 
 // ── Main orchestrator ──────────────────────────────────────────────────────
@@ -794,7 +875,9 @@ async function getPinInfo(rawUrl) {
     throw new PinError('COOLDOWN', 'Pinterest is limiting our requests right now. Please try again in a few minutes.', 503);
   }
 
+  const t0 = Date.now(), tm = {};
   const { pinId, cleanUrl } = await resolveUrl(rawUrl);
+  tm.resolve = Date.now() - t0;
 
   // ── Cache hit? Return instantly, no Pinterest API call ────────────────
   const cached = cacheGet(pinId);
@@ -805,7 +888,9 @@ async function getPinInfo(rawUrl) {
   let title = 'Pinterest Video', thumbnail = '', qualities = [], duration = 0, mediaType = 'video';
 
   try {
+    const ta = Date.now();
     const pinData = await fetchViaAPI(pinId);
+    tm.api = Date.now() - ta;
     for (const [key, meta] of Object.entries(QUALITY_MAP)) {
       const v = pinData?.videos?.video_list?.[key];
       if (v?.url) qualities.push({ label: meta.label, tag: meta.tag, url: v.url, type: 'video', order: meta.order });
@@ -830,7 +915,9 @@ async function getPinInfo(rawUrl) {
     // side) — those used to count toward the SAME cooldown counter, so a
     // batch of users pasting normal dead links could falsely trip a
     // site-wide "Pinterest rate-limited us" error for everyone.
-    console.warn('[API fail]', e.message);
+    if (e.code !== 'API_SKIPPED') console.warn('[API fail]', e.message);
+    tm.apiFail = Date.now() - t0 - tm.resolve;
+    const th = Date.now();
     try {
       const scraped = await fetchViaHTML(cleanUrl);
       qualities = scraped.videos;
@@ -840,10 +927,15 @@ async function getPinInfo(rawUrl) {
       else if (thumbnail) {
         qualities = [{ label: 'Original', tag: '', url: thumbnail, type: 'image', ext: extFromUrl(thumbnail, 'jpg') }];
         mediaType = 'image';
+        // An image pin is just as much proof Pinterest is answering us as a
+        // video pin is; without this a run of image lookups never reset the
+        // 429/403 failure counter.
+        recordPinterestSuccess();
       }
     } catch (e2) {
       console.error('[HTML fail]', e2.message);
     }
+    tm.html = Date.now() - th;
   }
 
   if (mediaType === 'video') qualities = deduplicateAndSort(qualities);
@@ -860,11 +952,15 @@ async function getPinInfo(rawUrl) {
 
   // ── Cache result for 30 min ───────────────────────────────────────────
   if (qualities.length > 0) {
+    const tsz = Date.now();
     await addFileSizes(qualities);
+    tm.sizes = Date.now() - tsz;
     cacheSet(pinId, result);
     console.log(`[Cache SET] pin/${pinId} — ${qualities.length} qualities`);
   }
 
+  tm.total = Date.now() - t0;
+  console.log(`[Timing] pin/${pinId} ${Object.entries(tm).map(([k, v]) => `${k}=${v}ms`).join(' ')}`);
   return result;
 }
 
@@ -1339,7 +1435,7 @@ const server = app.listen(PORT, HOST, () => {
 ║   🚀 KlickPint running on ${HOST}:${PORT}   ║
 ║   Anti-ban: UA rotation ON             ║
 ║   Abuse protection: ON                 ║
-║   Retry logic: ON (3 attempts)         ║
+║   Retry logic: ON (2 attempts)         ║
 ╚════════════════════════════════════════╝
 `);
   // ecosystem.config.js sets wait_ready:true. Without this signal PM2 waits
